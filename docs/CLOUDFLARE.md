@@ -115,9 +115,9 @@ npm run deploy                                 # vite build → wrangler deploy
 - ロールバック: `npx wrangler rollback`（コードだけ戻る。D1 のデータは戻らない）
 - ログ: `observability.enabled = true`。ダッシュボードの Workers Logs か `npx wrangler tail` で見る。
 
-## 8. バックアップ（2層）
+## 8. バックアップ
 
-リポジトリは公開するので、GitHub Actions ではバックアップを取らない（公開リポジトリのワークフローの成果物は、GitHub にログインした人なら誰でもダウンロードできる）。
+バックアップは取らない（SPEC §16）。手元にも GitHub Actions にも DB を書き出さない。リポジトリは公開するため（公開リポジトリのワークフローの成果物は、GitHub にログインした人なら誰でもダウンロードできる）。
 
-1. `npm run backup`: 手元に SQL 全体を保存する。大きな変更（マイグレーションなど）の前と、月1回を目安に。
-2. D1 Time Travel: D1 の標準機能で、直近の任意の時点に巻き戻せる（無料プランは7日分）。誤操作の直後の救済用で、長期保管には使えない。
+- D1 Time Travel: D1 の標準機能で、直近の任意の時点に巻き戻せる（無料プランは7日分）。誤操作の直後の救済用で、長期保管には使えない。
+- 戻し方: `npx wrangler d1 time-travel restore atcoder-drill --timestamp=<UTC の ISO 時刻>`（本番に影響するので、実行するのは人だけ）

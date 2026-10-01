@@ -39,9 +39,9 @@ npm run sync:problems -- --local
 
 次のコマンドは本番に影響するので、ユーザーに明示的に頼まれない限り実行しない。
 
-- `--remote` が付くもの（`db:migrate:remote`、`wrangler d1 execute --remote`、`backup`、`sync:problems -- --remote`）
+- `--remote` が付くもの（`db:migrate:remote`、`wrangler d1 execute --remote`、`sync:problems -- --remote`）
 - `npm run deploy`、`wrangler deploy`、`wrangler rollback`
-- `wrangler secret ...`、`wrangler d1 create|delete`
+- `wrangler secret ...`、`wrangler d1 create|delete|time-travel`
 
 ## ディレクトリ構成
 

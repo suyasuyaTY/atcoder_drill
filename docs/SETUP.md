@@ -99,7 +99,6 @@ DEBUG_TOOLS=1
 ```
 .dev.vars
 .wrangler/
-backups/
 ```
 
 ### `package.json` の scripts
@@ -114,8 +113,7 @@ backups/
     "typecheck": "tsc -b",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "sync:problems": "tsx scripts/sync-problems.ts",
-    "backup": "mkdir -p backups && wrangler d1 export atcoder-drill --remote --output backups/drill-$(date +%Y%m%d).sql"
+    "sync:problems": "tsx scripts/sync-problems.ts"
   }
 }
 ```
