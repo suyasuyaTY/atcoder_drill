@@ -18,7 +18,7 @@ SPA の画面遷移（`/session` など）は静的アセットの SPA フォー
 
 - Node.js 22 以上（`node -v`）
 - Cloudflare アカウント
-- GitHub のプライベートリポジトリ（Actions で同期とバックアップをするため）
+- GitHub のリポジトリ（公開。Actions で問題データを同期するため）
 
 ## 1. プロジェクトを作る
 
@@ -182,7 +182,7 @@ npm run deploy
 - `CLOUDFLARE_ACCOUNT_ID`
 - （Variables タブ）`ATCODER_USER_ID`: 自分の AtCoder ID。AC 済みの問題を初見から外すのに使う
 
-ワークフローのファイル（`.github/workflows/sync.yml`。同期とバックアップ）は、SPEC §19 のステップ5で Claude Code に作らせる。
+ワークフローのファイル（`.github/workflows/sync.yml`。問題データの同期）は、SPEC §19 のステップ5で Claude Code に作らせる。
 
 ## 8. コミットして Claude Code に渡す
 

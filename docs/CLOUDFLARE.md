@@ -15,8 +15,7 @@ Worker: atcoder-drill
          └─ D1 binding: DB ──▶ D1: atcoder-drill
 
 GitHub Actions（週1回）
-   ├─ scripts/sync-problems.ts ─ kenkoooo から取得 → SQL 生成 → wrangler d1 execute --remote
-   └─ wrangler d1 export --remote ─ バックアップをワークフローの成果物として保存
+   └─ scripts/sync-problems.ts ─ kenkoooo から取得 → SQL 生成 → wrangler d1 execute --remote
 ```
 
 ## 2. リソース一覧
@@ -116,8 +115,9 @@ npm run deploy                                 # vite build → wrangler deploy
 - ロールバック: `npx wrangler rollback`（コードだけ戻る。D1 のデータは戻らない）
 - ログ: `observability.enabled = true`。ダッシュボードの Workers Logs か `npx wrangler tail` で見る。
 
-## 8. バックアップ（3層）
+## 8. バックアップ（2層）
 
-1. GitHub Actions: 週1回の同期のあとに `wrangler d1 export --remote` を実行し、ワークフローの成果物として保存する（保持期間は最大90日）。
-2. `npm run backup`: 手元に SQL 全体を保存する。大きな変更（マイグレーションなど）の前と、月1回を目安に。
-3. D1 Time Travel: D1 の標準機能で、直近の任意の時点に巻き戻せる（無料プランは7日分）。誤操作の直後の救済用で、長期保管には使えない。
+リポジトリは公開するので、GitHub Actions ではバックアップを取らない（公開リポジトリのワークフローの成果物は、GitHub にログインした人なら誰でもダウンロードできる）。
+
+1. `npm run backup`: 手元に SQL 全体を保存する。大きな変更（マイグレーションなど）の前と、月1回を目安に。
+2. D1 Time Travel: D1 の標準機能で、直近の任意の時点に巻き戻せる（無料プランは7日分）。誤操作の直後の救済用で、長期保管には使えない。
