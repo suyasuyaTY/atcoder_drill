@@ -21,8 +21,7 @@
 		{
 			"binding": "DB",
 			"database_name": "atcoder-drill",
-			// TODO: `npx wrangler d1 create atcoder-drill` で表示された値に置き換える（ローカル開発はこのままでも動く）
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "30747724-e281-4b0e-bc11-202ac3f58a5a",
 			"migrations_dir": "migrations"
 		}
 	],
