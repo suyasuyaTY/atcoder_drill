@@ -56,8 +56,11 @@
   border-radius: 3px;
   border: 1px solid var(--line);
 }
-.unregistered {
+.fresh {
   background: var(--surface);
+}
+.off {
+  background: var(--cell-off);
 }
 .streak0 {
   background: var(--cell-streak0);

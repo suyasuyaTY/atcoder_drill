@@ -1,13 +1,15 @@
 /**
- * ホーム（SPEC §6.1、§8.3）。30日グラフと草はステップ8、初見の件数はステップ6で足す
+ * ホーム（SPEC §6.1、§8.3）。30日グラフと草はステップ8で足す
  */
 
 import { Hono } from "hono";
 import { CONTEST_KINDS, SESSION_KINDS, type SessionKind } from "../../lib/contest";
-import { DEFAULT_FRESH_QUOTA, planSlots } from "../../lib/scheduler";
+import { planSlots } from "../../lib/scheduler";
 import { homeQuery } from "../../shared/schema";
 import { now } from "../clock";
+import { countFresh } from "../db/fresh";
 import { cardStats, nextUnlockAt, sessionProgress, unlockedCountsByKind } from "../db/home";
+import { getProfile } from "../db/profile";
 import { openSession } from "../db/sessions";
 import type { AppEnv } from "../types";
 import { validate } from "../validate";
@@ -22,19 +24,26 @@ export const homeRoutes = new Hono<AppEnv>().get("/", validate("query", homeQuer
   const db = c.env.DB;
   const t = await now(c.env);
 
-  const [unlocked, stats, next, session] = await Promise.all([
+  const { fresh: profile } = await getProfile(db);
+  const [unlocked, stats, next, session, ...freshCounts] = await Promise.all([
     unlockedCountsByKind(db, t),
     cardStats(db, t),
     nextUnlockAt(db, kind, t),
     openSession(db),
+    ...CONTEST_KINDS.map((k) => countFresh(db, profile, k)),
   ]);
+  const freshOf = Object.fromEntries(CONTEST_KINDS.map((k, i) => [k, freshCounts[i] ?? 0])) as Record<
+    (typeof CONTEST_KINDS)[number],
+    number
+  >;
+  const sum = (f: (k: (typeof CONTEST_KINDS)[number]) => number) => CONTEST_KINDS.reduce((s, k) => s + f(k), 0);
 
   const kinds = Object.fromEntries(
     SESSION_KINDS.map((k): [SessionKind, Counts] => [
       k,
       {
-        review: k === "ALL" ? CONTEST_KINDS.reduce((sum, ck) => sum + (unlocked[ck] ?? 0), 0) : (unlocked[k] ?? 0),
-        fresh: 0,
+        review: k === "ALL" ? sum((ck) => unlocked[ck] ?? 0) : (unlocked[k] ?? 0),
+        fresh: k === "ALL" ? sum((ck) => freshOf[ck]) : freshOf[k],
       },
     ]),
   ) as Record<SessionKind, Counts>;
@@ -44,8 +53,9 @@ export const homeRoutes = new Hono<AppEnv>().get("/", validate("query", homeQuer
     {
       kind,
       kinds,
-      plan: planSlots(selected.review, selected.fresh, SESSION_SIZE, DEFAULT_FRESH_QUOTA),
-      stats: { ...stats, freshCandidates: 0 },
+      plan: planSlots(selected.review, selected.fresh, SESSION_SIZE, profile.freshQuota),
+      freshQuota: profile.freshQuota,
+      stats: { ...stats, freshCandidates: kinds.ALL.fresh },
       nextUnlockAt: next,
       openSession: session ? { ...session, ...(await sessionProgress(db, session.id)) } : null,
     },

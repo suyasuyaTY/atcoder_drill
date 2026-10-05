@@ -4,6 +4,7 @@ import { DebugPage } from "./pages/DebugPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SessionPage } from "./pages/SessionPage";
 import { TablePage } from "./pages/TablePage";
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
       { path: "table", element: <TablePage /> },
       { path: "session", element: <SessionPage /> },
+      { path: "profile", element: <ProfilePage /> },
       { path: "debug", element: <DebugPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

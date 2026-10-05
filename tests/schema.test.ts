@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardIdParam,
+  contestsQuery,
   createSessionBody,
   debugClockBody,
   debugUnlockBody,
@@ -8,6 +9,7 @@ import {
   homeQuery,
   loginBody,
   positionParam,
+  profileBody,
   registerBody,
   tableQuery,
 } from "../src/shared/schema";
@@ -123,5 +125,55 @@ describe("デバッグツール", () => {
   it("解禁するカードは ID か問題 ID", () => {
     expect(debugUnlockBody.parse({ target: " abc306_d " })).toEqual({ target: "abc306_d" });
     expect(debugUnlockBody.safeParse({ target: "" }).success).toBe(false);
+  });
+});
+
+describe("profileBody", () => {
+  const base = {
+    atcoderUserId: "suyasuyaty",
+    targets: { ABC: ["F", "G"], ARC: [], AGC: ["A"], OTHER: ["typical90", "APG4b"] },
+    minDifficulty: 800,
+    maxDifficulty: 2000,
+    freshQuota: 2,
+  };
+
+  it("受け付ける", () => {
+    expect(profileBody.parse(base)).toEqual(base);
+    expect(profileBody.parse({ ...base, atcoderUserId: null, minDifficulty: null, maxDifficulty: null, freshQuota: 0 })).toMatchObject({
+      atcoderUserId: null,
+    });
+  });
+
+  it("選べない記号・重複・種類の欠けは拒否", () => {
+    const bad = (targets: object) => profileBody.safeParse({ ...base, targets }).success;
+    expect(bad({ ...base.targets, ABC: ["I"] })).toBe(false);
+    expect(bad({ ...base.targets, ARC: ["G"] })).toBe(false);
+    expect(bad({ ...base.targets, ABC: ["F", "F"] })).toBe(false);
+    expect(bad({ ABC: [], ARC: [], AGC: [] })).toBe(false);
+    expect(bad({ ...base.targets, OTHER: ["../x"] })).toBe(false);
+  });
+
+  it("difficulty は 0〜5000 の整数で、下限 < 上限", () => {
+    const bad = (patch: object) => profileBody.safeParse({ ...base, ...patch }).success;
+    expect(bad({ minDifficulty: -1 })).toBe(false);
+    expect(bad({ maxDifficulty: 5001 })).toBe(false);
+    expect(bad({ minDifficulty: 1.5 })).toBe(false);
+    expect(bad({ minDifficulty: 2000, maxDifficulty: 2000 })).toBe(false);
+    expect(bad({ minDifficulty: 2400, maxDifficulty: 2000 })).toBe(false);
+  });
+
+  it("初見の枠は 0〜3、AtCoder ID は英数字と _ の 3〜16 文字", () => {
+    const bad = (patch: object) => profileBody.safeParse({ ...base, ...patch }).success;
+    expect(bad({ freshQuota: 4 })).toBe(false);
+    expect(bad({ atcoderUserId: "ab" })).toBe(false);
+    expect(bad({ atcoderUserId: "has space" })).toBe(false);
+  });
+});
+
+describe("contestsQuery", () => {
+  it("検索語は 1〜50 文字", () => {
+    expect(contestsQuery.parse({ q: "typical" })).toEqual({ q: "typical" });
+    expect(contestsQuery.safeParse({ q: "" }).success).toBe(false);
+    expect(contestsQuery.safeParse({ q: "x".repeat(51) }).success).toBe(false);
   });
 });

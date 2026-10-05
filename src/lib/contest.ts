@@ -65,3 +65,15 @@ export function tableColumns(kind: ContestKind, indexNorms: readonly string[]): 
   const cols = new Set([...TABLE_BASE_COLUMNS[kind], ...indexNorms]);
   return [...cols].sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
 }
+
+/** プロフィールの「初見で出す問題」で選べる問題記号（SPEC §5）。index_norm の値 */
+export const FRESH_INDEX_OPTIONS: Readonly<Record<Exclude<ContestKind, "OTHER">, readonly string[]>> = {
+  ABC: ["A", "B", "C", "D", "E", "F", "G", "H"],
+  ARC: ["A", "B", "C", "D", "E", "F"],
+  AGC: ["A", "B", "C", "D", "E", "F"],
+};
+
+/** 問題記号の表示名。ABC の H は Ex と同じ列なので「Ex/H」 */
+export function indexOptionLabel(kind: ContestKind, index: string): string {
+  return kind === "ABC" && index === "H" ? "Ex/H" : index;
+}

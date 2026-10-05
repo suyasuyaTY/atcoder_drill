@@ -93,7 +93,12 @@
 判定は純粋関数で行う（`src/lib/eligibility.ts`）。
 
 - `isFreshTarget(problem, profile, opts)`: 1問について判定する。カードがある問題は常に偽。
-- `buildFreshQuery(profile, kind)`: 同じ条件を D1 の SQL（`WHERE` 句とバインド値）にして返す。件数の集計と抽選に使う。2つの関数が同じ結果になることをテストで確かめる。
+- `buildFreshQuery(profile, kind)`: 同じ条件を D1 の SQL（`WHERE` 句とバインド値）にして返す。件数の集計と抽選に使う。2つの関数が同じ結果になることを、マイグレーションを当てた SQLite でテストする。
+- ABC / ARC / AGC は `index_norm` で選ぶ（選べる記号は `FRESH_INDEX_OPTIONS`、`src/lib/contest.ts`。ABC の H は「Ex/H」と表示する）。その他はコンテスト単位で、選んだコンテストの全問が対象。
+- difficulty が推定の不確かな問題（`is_experimental`）も区別せずに含める。
+- プロフィールの行がまだなければ、表の初期値として扱う。
+- AtCoder ID はヘッダーの表示名に使うだけ（提出データは使わない。§2.1）。英数字と `_` の 3〜16 文字。
+- 保存（`PUT /api/profile`）では、その他のコンテストは `contests` に kind = OTHER で存在するものだけを受け付ける（なければ 400 `unknown_contest`）。difficulty は 0〜5000 の整数で、下限 < 上限。
 
 設定を変えると、次の抽選から反映される。
 
@@ -130,7 +135,7 @@
 | 初見 | `buildFreshQuery(profile, kind)` に当たる問題 | 一様 |
 
 - 復習は、候補のカードを読み込んで `draw()` に渡し、`planSlots` の `review` 件だけ引く。
-- 初見は候補が多いので、件数を数えたあと、`crypto.getRandomValues` で重複のない OFFSET を `fresh` 件選び、`LIMIT 1 OFFSET ?` で1問ずつ取る。
+- 初見は候補が多いので、件数を数えたあと、`crypto.getRandomValues` で重複のない OFFSET を `fresh` 件選び（`pickDistinct`、`src/lib/scheduler.ts`）、`ORDER BY p.id LIMIT 1 OFFSET ?` で1問ずつ取る。
 - 並び順は、初見 → 復習（それぞれ引いた順）。
 - streak による重み付けはしない。卒業を急ぐ動機が入ると、申告を甘くする圧力になるため。
 
@@ -139,6 +144,7 @@
 - 引いた結果はすぐに D1 に保存する（`sessions`・`session_items`）。リロードしても同じ問題が出る。
 - 開いているセッションは同時に1つまで。全問申告すると自動で閉じる。開いている間は新しく引けない。ホームのボタンは「セッションを再開」になる。途中で閉じる手段は用意しない。
 - 初見の問題を申告すると、`register(grade, now)` でカードを作る。以後は復習に回る。
+- 初見で出題中の問題は、登録画面から登録できない（「出題中 ・ セッションで申告する」と表示し、`POST /api/register` は `inSession` に入れて飛ばす）。セッションで申告すればカードができるため。
 
 ## 7. 登録
 
@@ -212,25 +218,24 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 |---|---|
 | `GET /api/me` | `{ atcoderUserId, debugTools, clockOffsetDays }`。未認証なら 401 |
 | `POST /api/login` | `{ token }`。`AUTH_MODE=token` のときだけ（それ以外は 404）。一致したら cookie を発行する。違えば 401（`invalid_token`） |
-| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。初見の件数はステップ6、グラフと草はステップ8で足す |
+| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。`freshQuota`（プロフィールの初見の枠）も返す。グラフと草はステップ8で足す |
 | `POST /api/sessions` | `{ kind }` で抽選してセッションを作る（201 と `{ session }`）。開いているセッションがあれば、作らずに 409（`session_open`）とそのセッションを返す。出せる問題がなければ 409（`empty_pool`） |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
 | `POST /api/sessions/current/items/:position/grade` | `{ grade, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す: `{ position, result: { grade, streakBefore, streakAfter, nextReviewAt, note }, sessionClosed }`。対象は直近のセッションなので、最後の1問の二重送信（セッションはもう閉じている）でも記録済みの結果を返す。楽観ロックに負けたら 409 |
-| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。`isFreshTarget` はステップ6で足す |
-| `POST /api/register` | `{ items: [{ problemId, grade, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId] }` を返す。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
+| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。各問題に `freshTarget`（`isFreshTarget`）と `inSession`（出題中）を付ける |
+| `POST /api/register` | `{ items: [{ problemId, grade, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId], inSession: [problemId] }` を返す（`inSession` は出題中で飛ばした問題）。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
 | `GET /api/register/session` | 開いている登録セッションと、そこで登録した問題 |
 | `DELETE /api/register/items/:cardId` | 今回の登録から取り消す（§7.4 の条件を満たすときだけ。満たさなければ 409 `cannot_undo`、カードがなければ 404） |
 | `POST /api/register/session/close` | 登録を終える |
 | `GET /api/table?kind=ABC&page=1` | 問題表のデータ（20コンテスト分、各セルの状態） |
 | `GET /api/cards/:id`・`DELETE /api/cards/:id` | カード詳細と申告履歴 / カード削除（申告も消える） |
-| `GET /api/profile`・`PUT /api/profile` | プロフィール（§5） |
-| `GET /api/contests?q=` | その他のコンテストの検索（ID・名前、問題数つき。最大20件） |
+| `GET /api/profile`・`PUT /api/profile` | プロフィール（§5）。`{ atcoderUserId, targets, minDifficulty, maxDifficulty, freshQuota, otherContests: [{ id, title, problemCount }], freshCandidates }`。PUT の本文は `otherContests` と `freshCandidates` を除いた形で、保存後の内容を返す |
+| `GET /api/contests?q=` | その他のコンテストの検索（ID・名前の部分一致、問題数つき。kind = OTHER で問題が1問以上あるものを新しい順に最大20件） |
 | `/api/debug/*` | デバッグツール（`DEBUG_TOOLS=1` のときだけ。それ以外は 404）。`POST /clock`（`{ addDays }`、いまのずれに足す。±3650日まで）、`POST /clock/reset`、`POST /unlock`（`{ target }`、カード ID か問題 ID）、`POST /sample` |
 
 ### 8.3 ホーム
 
 - 種類の選択（§6.1）と、選んだ種類での「今回の3問」の内訳、「3問を引く」。0件なら押せない。復習が0件のときは「次の解禁は 10/4」も表示する。
-- ステップ6までは初見がないので、説明は「解禁中の復習から、解禁からの日数が長いものほど出やすく引きます。」にする。
 - 開いているセッションがあれば、選択の代わりに「セッションを再開（1 / 3）」だけを表示する。
 - 統計: 現役 / 復習の解禁中 / 卒業 / 初見の候補。
 - 30日グラフと草（§10）。
@@ -251,19 +256,17 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 AtCoder Problems の Table のように、行をコンテスト、列を問題記号にして、各問題の状態を色で表示する。
 
 - タブは ABC / ARC / AGC / その他。行は新しいコンテストから順に並べ、20コンテストずつページ送りにする。
-- 「その他」タブに出すのは、プロフィールで選んだコンテストと、カードが1枚以上あるコンテストだけ（プロフィールで選んだコンテストはステップ6で足す）。
+- 「その他」タブに出すのは、プロフィールで選んだコンテストと、カードが1枚以上あるコンテストだけ。
 - 問題が1問もないコンテストは出さない。
 - 列はその種類の問題記号（`index_norm`）。基本の列（ABC は A〜G、ARC・AGC は A〜F）に、表示中のコンテストにあるほかの記号（Ex/H、ARC の G など）を足す（`tableColumns`、`src/lib/contest.ts`）。`F` と `F2` のように同じ列に2問入るときは、セルの中に縦に並べ、記号も書く。
 - 「その他」は記号がコンテストごとにばらばら（`001`〜`090` など、1回で最大137問）なので列をそろえない。行の中に問題を記号順に並べて折り返す。
 - セル: difficulty の点、タイトル、状態の補足。押すと、カードがあればカード詳細へ、なければ問題単位の登録画面（`/register?q=<問題 URL>`）へ移る。
-- 状態は `cardStatus(problem, card, profile, now)`（`src/lib/eligibility.ts`）で決める。サーバーで計算して `/api/table` に含める。ステップ3の時点では `cardStatus(card, now)` で、ステップ6で問題とプロフィールを受け取るように広げる。
+- 状態は `cardStatus(problem, card, profile, now)`（`src/lib/eligibility.ts`）で決める。サーバーで計算して `/api/table` に含める。補足は「初見に出る」「未登録」「あと N日」「解禁 N日」「卒業」。
 
 | 状態 | 条件 | セル |
 |---|---|---|
 | 未登録・初見に出る | カードなし、`isFreshTarget` が真 | 白 |
 | 未登録・出ない | カードなし、`isFreshTarget` が偽 | 灰 |
-
-ステップ6までは2つを区別せず、どちらも「未登録」（白）と表示する。
 | 待機中 | 現役・未解禁 | streak 0 は橙系、1 は青系。補足「あと N日」 |
 | 解禁中 | 現役・解禁済み | streak の色に濃い枠。補足「解禁 N日」 |
 | 卒業 | `graduated_at` あり | 緑系。補足「卒業」 |
@@ -514,7 +517,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
 - [x] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する（ワークフロー `.github/workflows/sync.yml` と手順 `docs/CLOUDFLARE.md` §7 は用意済み。デプロイが済んだらチェックする）
-- [ ] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
+- [x] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
 - [x] 7. ~~タイマー（`useTimer`）~~ 作らない（§15）
 - [ ] 8. ホームのグラフと草（`stats.ts`）
 - [ ] 9. カード詳細とカード削除

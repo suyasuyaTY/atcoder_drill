@@ -176,3 +176,23 @@ export function planSlots(
   fresh = Math.min(freshAvailable, count - review);
   return { review, fresh };
 }
+
+/**
+ * 0 以上 n 未満の整数から、重複なく k 個を一様に選ぶ（初見の抽選の OFFSET。SPEC §6.2）。
+ * k が n 以上なら全部を返す。乱数は引数で注入する。
+ */
+export function pickDistinct(n: number, k: number, rng: Rng = Math.random): number[] {
+  for (const [name, v] of [
+    ["n", n],
+    ["k", k],
+  ] as const) {
+    if (!Number.isInteger(v) || v < 0) {
+      throw new RangeError(`pickDistinct: ${name} は 0 以上の整数（受け取った値: ${v}）`);
+    }
+  }
+  const picked = new Set<number>();
+  const want = Math.min(n, k);
+  // n が大きいので配列を作らず、重複したら引き直す（k は高々 3）
+  while (picked.size < want) picked.add(Math.min(n - 1, Math.floor(rng() * n)));
+  return [...picked];
+}

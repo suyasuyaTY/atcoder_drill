@@ -7,6 +7,7 @@ import { tableColumns } from "../../lib/contest";
 import { cardStatus } from "../../lib/eligibility";
 import { tableQuery } from "../../shared/schema";
 import { now } from "../clock";
+import { getProfile } from "../db/profile";
 import { countTableContests, TABLE_PAGE_SIZE, tableContests, tableProblems } from "../db/table";
 import type { AppEnv } from "../types";
 import { validate } from "../validate";
@@ -14,7 +15,13 @@ import { validate } from "../validate";
 export const tableRoutes = new Hono<AppEnv>().get("/", validate("query", tableQuery), async (c) => {
   const { kind, page } = c.req.valid("query");
   const db = c.env.DB;
-  const [t, total, contests] = await Promise.all([now(c.env), countTableContests(db, kind), tableContests(db, kind, page)]);
+  const { fresh: profile } = await getProfile(db);
+  const others = profile.targets.OTHER;
+  const [t, total, contests] = await Promise.all([
+    now(c.env),
+    countTableContests(db, kind, others),
+    tableContests(db, kind, others, page),
+  ]);
   const problems = contests.length > 0 ? await tableProblems(db, contests.map((x) => x.id)) : [];
 
   const rows = contests.map((contest) => ({
@@ -30,7 +37,9 @@ export const tableRoutes = new Hono<AppEnv>().get("/", validate("query", tableQu
         difficulty: p.difficulty,
         cardId: p.cardId,
         status: cardStatus(
+          p,
           p.cardId === null ? null : { streak: p.streak!, nextReviewAt: p.nextReviewAt, graduatedAt: p.graduatedAt },
+          profile,
           t,
         ),
       })),

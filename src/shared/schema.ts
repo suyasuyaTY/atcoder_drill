@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { CONTEST_KINDS, SESSION_KINDS } from "../lib/contest";
+import { CONTEST_KINDS, FRESH_INDEX_OPTIONS, SESSION_KINDS } from "../lib/contest";
 import { GRADES, type Grade } from "../lib/scheduler";
 
 /** AtCoder のコンテスト ID・問題 ID（大文字を含むことがある） */
@@ -91,6 +91,45 @@ export const debugClockBody = z.strictObject({
 export const debugUnlockBody = z.strictObject({
   /** カード ID か問題 ID */
   target: z.string().trim().min(1).max(100),
+});
+
+const uniqueArray = <T extends z.ZodType>(item: T, max: number) =>
+  z
+    .array(item)
+    .max(max)
+    .refine((a) => new Set(a).size === a.length, { message: "同じ値が2回入っている" });
+
+const indexOf = (kind: keyof typeof FRESH_INDEX_OPTIONS) =>
+  uniqueArray(z.enum(FRESH_INDEX_OPTIONS[kind] as [string, ...string[]]), FRESH_INDEX_OPTIONS[kind].length);
+
+const difficulty = z.number().int().min(0).max(5000).nullable();
+
+/** プロフィール（SPEC §5） */
+export const profileBody = z
+  .strictObject({
+    /** 表示名に使うだけ（提出データは使わない。SPEC §2.1） */
+    atcoderUserId: z
+      .string()
+      .regex(/^[A-Za-z0-9_]{3,16}$/)
+      .nullable(),
+    targets: z.strictObject({
+      ABC: indexOf("ABC"),
+      ARC: indexOf("ARC"),
+      AGC: indexOf("AGC"),
+      OTHER: uniqueArray(atcoderId, 200),
+    }),
+    minDifficulty: difficulty,
+    maxDifficulty: difficulty,
+    freshQuota: z.number().int().min(0).max(3),
+  })
+  .refine((p) => p.minDifficulty === null || p.maxDifficulty === null || p.minDifficulty < p.maxDifficulty, {
+    message: "difficulty の下限は上限より小さくする",
+    path: ["maxDifficulty"],
+  });
+export type ProfileBody = z.infer<typeof profileBody>;
+
+export const contestsQuery = z.object({
+  q: z.string().trim().min(1).max(50),
 });
 
 /** エラーのレスポンス（SPEC §8） */

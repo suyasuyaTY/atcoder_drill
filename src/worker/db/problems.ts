@@ -10,17 +10,33 @@ export interface ContestRow {
 export interface ProblemWithCard {
   id: string;
   contestId: string;
+  kind: ContestKind;
   problemIndex: string;
+  indexNorm: string;
   title: string;
   /** 補正後の値（SPEC §10.1） */
   difficulty: number | null;
   cardId: number | null;
+  /** 開いているセッションに出題中か（0 / 1） */
+  inSession: number;
 }
 
 const PROBLEM_WITH_CARD = `
-  SELECT p.id, p.contest_id AS contestId, p.problem_index AS problemIndex, p.title,
-         p.difficulty_disp AS difficulty, c.id AS cardId
+  SELECT p.id, p.contest_id AS contestId, p.kind, p.problem_index AS problemIndex, p.index_norm AS indexNorm, p.title,
+         p.difficulty_disp AS difficulty, c.id AS cardId,
+         EXISTS (SELECT 1 FROM session_items si JOIN sessions s ON s.id = si.session_id
+                 WHERE s.closed_at IS NULL AND si.problem_id = p.id) AS inSession
   FROM problems p LEFT JOIN cards c ON c.problem_id = p.id`;
+
+/** 開いているセッションに出題中の問題 */
+export async function problemIdsInOpenSession(db: D1Database): Promise<Set<string>> {
+  const { results } = await db
+    .prepare(
+      "SELECT si.problem_id AS id FROM session_items si JOIN sessions s ON s.id = si.session_id WHERE s.closed_at IS NULL",
+    )
+    .all<{ id: string }>();
+  return new Set(results.map((r) => r.id.toLowerCase()));
+}
 
 /** 問題記号順（`B` < `AA`、`G` < `Ex`） */
 export const ORDER_BY_INDEX = "ORDER BY length(p.problem_index), p.problem_index";

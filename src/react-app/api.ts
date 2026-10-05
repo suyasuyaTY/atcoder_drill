@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { hc, type ClientResponse, type parseResponse } from "hono/client";
 import type { ContestKind, SessionKind } from "../lib/contest";
-import type { ErrorBody, GradeBody, LoginBody, RegisterBody } from "../shared/schema";
+import type { ErrorBody, GradeBody, LoginBody, ProfileBody, RegisterBody } from "../shared/schema";
 import type { AppType } from "../worker/index";
 
 export const client = hc<AppType>(window.location.origin);
@@ -54,6 +54,8 @@ export const queryKeys = {
   homeAll: ["home"] as const,
   home: (kind: SessionKind) => ["home", kind] as const,
   session: ["session", "current"] as const,
+  profile: ["profile"] as const,
+  contests: (q: string) => ["contests", q] as const,
 };
 
 export function useMe() {
@@ -92,6 +94,7 @@ function invalidateRegistration(queryClient: ReturnType<typeof useQueryClient>) 
     queryClient.invalidateQueries({ queryKey: queryKeys.lookupAll }),
     queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
     queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
   ]);
 }
 
@@ -187,3 +190,36 @@ export const useDebugClockReset = () => useDebugMutation(() => call(client.api.d
 export const useDebugUnlock = () =>
   useDebugMutation((target: string) => call(client.api.debug.unlock.$post({ json: { target } })));
 export const useDebugSample = () => useDebugMutation(() => call(client.api.debug.sample.$post()));
+
+export function useProfile() {
+  return useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: () => call(client.api.profile.$get()),
+  });
+}
+
+/** 保存すると、初見の候補が変わるので、ホーム・問題表・登録画面・ヘッダーの名前も取り直す */
+export function useSaveProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ProfileBody) => call(client.api.profile.$put({ json: body })),
+    onSuccess: (data) => queryClient.setQueryData(queryKeys.profile, data),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.lookupAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+      ]),
+  });
+}
+
+export function useContestSearch(q: string) {
+  return useQuery({
+    queryKey: queryKeys.contests(q),
+    queryFn: () => call(client.api.contests.$get({ query: { q } })),
+    enabled: q !== "",
+    placeholderData: (prev) => prev,
+  });
+}

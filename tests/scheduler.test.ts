@@ -5,6 +5,7 @@ import {
   draw,
   drawWeight,
   isUnlocked,
+  pickDistinct,
   planSlots,
   register,
   type DrawableCard,
@@ -225,5 +226,37 @@ describe("planSlots", () => {
     expect(() => planSlots(-1, 0, 3)).toThrow(RangeError);
     expect(() => planSlots(0, 1.5, 3)).toThrow(RangeError);
     expect(() => planSlots(0, 0, 3, 4)).toThrow(RangeError);
+  });
+});
+
+describe("pickDistinct（初見の OFFSET）", () => {
+  it("0 以上 n 未満から、重複なく k 個", () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      const r = pickDistinct(10, 3, seeded(seed));
+      expect(r).toHaveLength(3);
+      expect(new Set(r).size).toBe(3);
+      for (const x of r) {
+        expect(Number.isInteger(x)).toBe(true);
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThan(10);
+      }
+    }
+  });
+
+  it("k が n 以上なら全部（順は乱数で決まる）", () => {
+    expect(pickDistinct(3, 5, seeded(7)).sort()).toEqual([0, 1, 2]);
+    expect(pickDistinct(0, 2, seeded(7))).toEqual([]);
+  });
+
+  it("大きな n でも偏らない（各値が出る回数がおおむね同じ）", () => {
+    const rng = seeded(42);
+    const counts = new Array<number>(5).fill(0);
+    for (let i = 0; i < 5000; i++) for (const x of pickDistinct(5, 2, rng)) counts[x]!++;
+    for (const c of counts) expect(c).toBeGreaterThan(1800); // 期待値 2000
+  });
+
+  it("不正な引数は例外", () => {
+    expect(() => pickDistinct(-1, 1, seeded(1))).toThrow();
+    expect(() => pickDistinct(3, 1.5, seeded(1))).toThrow();
   });
 });

@@ -8,7 +8,8 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./TablePage.module.css";
 
 const LEGEND = [
-  { cls: "unregistered", label: "未登録" },
+  { cls: "fresh", label: "未登録・初見に出る" },
+  { cls: "off", label: "未登録・出ない" },
   { cls: "streak0", label: "streak 0" },
   { cls: "streak1", label: "streak 1" },
   { cls: "graduated", label: "卒業" },
@@ -55,7 +56,7 @@ export function TablePage() {
         <section className="panel">
           <p className="muted">
             {kind === "OTHER"
-              ? "その他のコンテストは、登録した問題があるコンテストだけを表示します。"
+              ? "その他のコンテストは、プロフィールで選んだコンテストと、登録した問題があるコンテストだけを表示します。"
               : "表示するコンテストがありません。問題データを同期してください。"}
           </p>
         </section>

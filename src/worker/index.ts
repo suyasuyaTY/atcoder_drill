@@ -8,6 +8,7 @@ import { debugRoutes } from "./routes/debug";
 import { homeRoutes } from "./routes/home";
 import { loginRoutes } from "./routes/login";
 import { meRoutes } from "./routes/me";
+import { contestRoutes, profileRoutes } from "./routes/profile";
 import { registerRoutes } from "./routes/register";
 import { sessionRoutes } from "./routes/sessions";
 import { tableRoutes } from "./routes/table";
@@ -26,6 +27,8 @@ const app = new Hono<AppEnv>()
   .route("/table", tableRoutes)
   .route("/home", homeRoutes)
   .route("/sessions", sessionRoutes)
+  .route("/profile", profileRoutes)
+  .route("/contests", contestRoutes)
   .route("/debug", debugRoutes);
 
 app.notFound((c) => apiError(c, 404, "not_found", "見つかりません"));

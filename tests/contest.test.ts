@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTEST_KINDS,
+  FRESH_INDEX_OPTIONS,
   KIND_LABELS,
   SESSION_KINDS,
   contestKind,
+  indexOptionLabel,
   isContestKind,
   isSessionKind,
   normalizeIndex,
@@ -80,5 +82,19 @@ describe("tableColumns（問題表の列）", () => {
 
   it("その他は列を持たない", () => {
     expect(tableColumns("OTHER", ["A", "B"])).toBeNull();
+  });
+});
+
+describe("FRESH_INDEX_OPTIONS（プロフィールで選べる問題記号）", () => {
+  it("ABC は A〜G と Ex/H、ARC・AGC は A〜F", () => {
+    expect(FRESH_INDEX_OPTIONS.ABC).toEqual(["A", "B", "C", "D", "E", "F", "G", "H"]);
+    expect(FRESH_INDEX_OPTIONS.ARC).toEqual(["A", "B", "C", "D", "E", "F"]);
+    expect(FRESH_INDEX_OPTIONS.AGC).toEqual(["A", "B", "C", "D", "E", "F"]);
+  });
+
+  it("表示名。ABC の H は Ex/H", () => {
+    expect(indexOptionLabel("ABC", "H")).toBe("Ex/H");
+    expect(indexOptionLabel("ABC", "F")).toBe("F");
+    expect(indexOptionLabel("ARC", "F")).toBe("F");
   });
 });

@@ -100,7 +100,9 @@ export function ProblemTable({ kind, columns, rows }: { kind: ContestKind; colum
 
 function statusText(s: CellStatus): string {
   switch (s.state) {
-    case "unregistered":
+    case "fresh":
+      return "初見に出る";
+    case "off":
       return "未登録";
     case "waiting":
       return `あと ${s.days}日`;
@@ -113,8 +115,10 @@ function statusText(s: CellStatus): string {
 
 function statusClass(s: CellStatus): string {
   switch (s.state) {
-    case "unregistered":
-      return styles.unregistered!;
+    case "fresh":
+      return styles.fresh!;
+    case "off":
+      return styles.off!;
     case "waiting":
       return s.streak === 0 ? styles.streak0! : styles.streak1!;
     case "unlocked":

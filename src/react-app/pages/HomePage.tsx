@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { isSessionKind, type SessionKind } from "../../lib/contest";
 import { formatJstDate } from "../../lib/format";
 import { ApiError, useCreateSession, useHome } from "../api";
@@ -73,7 +73,10 @@ export function HomePage() {
                 <div className={styles.pick}>
                   <h2>種類</h2>
                   <KindPicker value={kind} counts={home.data.kinds} />
-                  <p className={styles.help}>解禁中の復習から、解禁からの日数が長いものほど出やすく引きます。</p>
+                  <p className={styles.help}>
+                    初見を多めに出し（3問中{home.data.freshQuota}問）、残りを解禁中の復習から出します。初見の割合は
+                    <Link to="/profile">プロフィール</Link>で変えられます。
+                  </p>
                 </div>
                 <div className={styles.plan}>
                   <h2>今回の{home.data.plan.review + home.data.plan.fresh}問</h2>

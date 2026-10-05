@@ -4,6 +4,7 @@
 
 import type { SessionKind } from "../../lib/contest";
 import type { Grade } from "../../lib/scheduler";
+import { insertCard, type NewCard } from "./cards";
 
 const KIND_FILTER = "(?2 = 'ALL' OR kind = ?2)";
 
@@ -86,6 +87,7 @@ export interface SessionItem {
 
 type ItemRow = Omit<SessionItem, "source" | "result" | "streak"> & {
   streak: number | null;
+  attemptKind: "fresh" | "review" | null;
   grade: Grade | null;
   streakBefore: number | null;
   streakAfter: number | null;
@@ -99,7 +101,7 @@ export async function sessionItems(db: D1Database, sessionId: number): Promise<S
       `SELECT si.position, si.problem_id AS problemId,
               COALESCE(p.contest_id, c.contest_id) AS contestId, COALESCE(p.problem_index, c.problem_index) AS problemIndex,
               COALESCE(p.title, c.title) AS title, p.difficulty_disp AS difficulty, si.card_id AS cardId, c.streak,
-              a.grade, a.streak_before AS streakBefore, a.streak_after AS streakAfter,
+              a.kind AS attemptKind, a.grade, a.streak_before AS streakBefore, a.streak_after AS streakAfter,
               a.next_review_at AS resultNextReviewAt, a.note
        FROM session_items si
        LEFT JOIN problems p ON p.id = si.problem_id
@@ -117,8 +119,8 @@ export async function sessionItems(db: D1Database, sessionId: number): Promise<S
     problemIndex: r.problemIndex,
     title: r.title,
     difficulty: r.difficulty,
-    // 初見の項目は申告するまで card_id が NULL（SPEC §11）。初見はステップ6で足す
-    source: r.cardId === null ? "fresh" : "review",
+    // 初見の項目は申告するまで card_id が NULL（SPEC §11）。申告後は申告の kind で見分ける
+    source: r.attemptKind !== null ? r.attemptKind : r.cardId === null ? "fresh" : "review",
     cardId: r.cardId,
     streak: r.grade !== null ? r.streakBefore! : (r.streak ?? 0),
     result:
@@ -178,6 +180,40 @@ export async function gradeReview(db: D1Database, g: ReviewGrade): Promise<{ wri
     closeIfDone(db, g.sessionId, g.attemptedAt),
   ]);
   return { written: (insert?.meta.changes ?? 0) > 0, closed: (close?.meta.changes ?? 0) > 0 };
+}
+
+export interface FreshGrade {
+  sessionId: number;
+  position: number;
+  card: NewCard;
+  attemptedAt: string;
+  grade: Grade;
+  note: string | null;
+  streakAfter: number;
+  nextReviewAt: string;
+}
+
+/**
+ * 初見の申告（SPEC §11.1 の 3）。カードを作り（origin = fresh）、申告を足し、項目にカードを結び付ける。
+ * 全問申告済みならセッションを閉じる。同じ問題のカードがすでにあれば一意制約で全体が失敗する。
+ */
+export async function gradeFresh(db: D1Database, g: FreshGrade): Promise<void> {
+  await db.batch([
+    insertCard(db, g.card),
+    db
+      .prepare(
+        `INSERT INTO attempts (card_id, kind, session_id, reg_session_id, attempted_at, grade,
+                               streak_before, streak_after, next_review_at, note)
+         VALUES ((SELECT id FROM cards WHERE problem_id = ?1), 'fresh', ?2, NULL, ?3, ?4, 0, ?5, ?6, ?7)`,
+      )
+      .bind(g.card.problemId, g.sessionId, g.attemptedAt, g.grade, g.streakAfter, g.nextReviewAt, g.note),
+    db
+      .prepare(
+        "UPDATE session_items SET card_id = (SELECT id FROM cards WHERE problem_id = ?1) WHERE session_id = ?2 AND position = ?3",
+      )
+      .bind(g.card.problemId, g.sessionId, g.position),
+    closeIfDone(db, g.sessionId, g.attemptedAt),
+  ]);
 }
 
 /** 全項目に申告があればセッションを閉じる */

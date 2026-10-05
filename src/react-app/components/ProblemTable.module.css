@@ -86,8 +86,22 @@
   color: var(--text-muted);
 }
 
-.unregistered {
+.fresh {
   background: var(--surface);
+}
+/* 未登録・出ない: 灰の地、文字は muted、点は半透明（DESIGN §4） */
+.off {
+  background: var(--cell-off);
+  color: var(--text-muted);
+}
+.off:hover {
+  color: var(--text-muted);
+}
+.off .cellTitle {
+  font-weight: 400;
+}
+.off .line1 > :first-child {
+  opacity: 0.5;
 }
 .streak0 {
   background: var(--cell-streak0);

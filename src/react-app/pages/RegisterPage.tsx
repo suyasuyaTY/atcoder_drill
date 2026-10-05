@@ -9,6 +9,7 @@ import { useCloseRegSession, useLookup, useRegister, useRegSession, useUndoRegis
 import { Button } from "../components/Button";
 import { DifficultyDot } from "../components/DifficultyDot";
 import { ExternalLink } from "../components/ExternalLink";
+import { FreshTag } from "../components/FreshTag";
 import { GradeBar } from "../components/GradeBar";
 import { GradeChip } from "../components/GradeChip";
 import { Notice } from "../components/Notice";
@@ -25,8 +26,8 @@ export function RegisterPage() {
   return (
     <main className="page page-wide">
       <h1>登録</h1>
-      <UrlForm key={q} initial={q} onSubmit={(next) => setParams(next ? { q: next } : {})} />
-      {q !== "" && <LookupResult key={q} q={q} />}
+      <UrlForm key={`url:${q}`} initial={q} onSubmit={(next) => setParams(next ? { q: next } : {})} />
+      {q !== "" && <LookupResult key={`lookup:${q}`} q={q} />}
       <CurrentRegistrations />
     </main>
   );
@@ -157,10 +158,15 @@ function LookupResult({ q }: { q: string }) {
                     {p.title}
                   </ExternalLink>
                   <DifficultyDot value={p.difficulty} />
+                  {p.freshTarget && <FreshTag />}
                 </div>
                 {p.cardId !== null ? (
                   <span className={styles.registered}>
                     登録済み ・ <Link to={`/cards/${p.cardId}`}>カードを開く</Link>
+                  </span>
+                ) : p.inSession ? (
+                  <span className={styles.registered}>
+                    出題中 ・ <Link to="/session">セッションで申告する</Link>
                   </span>
                 ) : (
                   <GradeBar
@@ -175,7 +181,7 @@ function LookupResult({ q }: { q: string }) {
         </>
       )}
 
-      {(single || manual) && problems.every((p) => p.cardId === null) && (
+      {(single || manual) && problems.every((p) => p.cardId === null && !p.inSession) && (
         <div className={styles.extras}>
           <div className={`${styles.field} ${styles.grow}`}>
             <label htmlFor={noteId} className={styles.label}>
@@ -197,6 +203,7 @@ function LookupResult({ q }: { q: string }) {
         <Notice>
           {reg.data.registered.length > 0 && `${reg.data.registered.length}問を登録しました。`}
           {reg.data.skipped.length > 0 && `登録済みのため飛ばしました: ${reg.data.skipped.join(", ")}`}
+          {reg.data.inSession.length > 0 && `出題中のため飛ばしました: ${reg.data.inSession.join(", ")}`}
         </Notice>
       )}
 
