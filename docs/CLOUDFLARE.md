@@ -102,12 +102,29 @@ Worker 側でも JWT を検証する（SPEC §17）。Access の設定ミスや�
 
 ## 7. デプロイ手順（人が実行する）
 
+### 初回（Phase A。SPEC §19 のステップ5）
+
+```sh
+npx wrangler login
+openssl rand -base64 32                         # 出てきた値をパスワードマネージャーに保存する
+npx wrangler secret put AUTH_TOKEN              # 上の値を貼る（画面にもログにも残らない）
+npx wrangler d1 migrations apply DB --remote    # 本番の D1 にテーブルを作る
+npm run sync:problems -- --remote               # 本番の D1 に問題データを入れる（初回だけ手で。以後は Actions）
+npm run deploy                                  # vite build → wrangler deploy
+```
+
+- `https://atcoder-drill.<account>.workers.dev/` を開き、`/login` でトークンを入れてホームが出れば完了。`/api/debug/*` が 404 になることも確かめる。
+- GitHub の Settings › Secrets and variables › Actions に `CLOUDFLARE_API_TOKEN`（権限は「Account › D1 › Edit」だけ）と `CLOUDFLARE_ACCOUNT_ID` を入れ、Actions の `sync-problems` を手動で1回動かす（`.github/workflows/sync.yml`）。
+
+### 2回目以降
+
 ```sh
 npm test && npm run typecheck
 npx wrangler d1 migrations apply DB --remote   # 新しいマイグレーションがあるときだけ。デプロイより先に実行する
 npm run deploy                                 # vite build → wrangler deploy
 ```
 
+- デプロイ前の確認だけなら `npm run check`（ビルドして `wrangler deploy --dry-run`。本番には何も上げない）。
 - `--local` と `--remote` は別の DB。ローカルでマイグレーションを当てても本番には反映されない。
 - マイグレーションは「後方互換な変更を先に当て → デプロイ」の順にする。列の削除や改名は2回のリリースに分ける。
 - ロールバック: `npx wrangler rollback`（コードだけ戻る。D1 のデータは戻らない）

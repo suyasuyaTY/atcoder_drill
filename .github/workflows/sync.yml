@@ -1,0 +1,32 @@
+# 問題データの同期（SPEC §14.1）。週1回（月曜 03:00 JST）と手動。
+# 本番の D1 にマイグレーションを当ててから動かす（docs/CLOUDFLARE.md §7）。
+# リポジトリは公開なので、ログに DB の中身を出さない（SPEC §16）。
+name: sync-problems
+
+on:
+  schedule:
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-problems
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run sync:problems -- --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

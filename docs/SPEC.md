@@ -513,7 +513,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 2. 同期スクリプト（§14.1 を `--local` で確認）
 - [x] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
 - [x] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
-- [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する
+- [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する（ワークフロー `.github/workflows/sync.yml` と手順 `docs/CLOUDFLARE.md` §7 は用意済み。デプロイが済んだらチェックする）
 - [ ] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
 - [x] 7. ~~タイマー（`useTimer`）~~ 作らない（§15）
 - [ ] 8. ホームのグラフと草（`stats.ts`）
