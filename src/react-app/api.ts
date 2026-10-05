@@ -56,6 +56,8 @@ export const queryKeys = {
   session: ["session", "current"] as const,
   profile: ["profile"] as const,
   contests: (q: string) => ["contests", q] as const,
+  cardAll: ["card"] as const,
+  card: (id: number) => ["card", id] as const,
 };
 
 export function useMe() {
@@ -95,6 +97,7 @@ function invalidateRegistration(queryClient: ReturnType<typeof useQueryClient>) 
     queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
     queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
     queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.cardAll }),
   ]);
 }
 
@@ -173,6 +176,7 @@ export function useGrade() {
         queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
         queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
         queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.cardAll }),
       ]);
     },
   });
@@ -221,5 +225,30 @@ export function useContestSearch(q: string) {
     queryFn: () => call(client.api.contests.$get({ query: { q } })),
     enabled: q !== "",
     placeholderData: (prev) => prev,
+  });
+}
+
+export function useCard(id: number) {
+  return useQuery({
+    queryKey: queryKeys.card(id),
+    queryFn: () => call(client.api.cards[":cardId"].$get({ param: { cardId: String(id) } })),
+  });
+}
+
+/** 削除すると、ホーム・問題表・登録画面の件数と状態が変わるので取り直す */
+export function useDeleteCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => call(client.api.cards[":cardId"].$delete({ param: { cardId: String(id) } })),
+    onSuccess: (_data, id) => queryClient.removeQueries({ queryKey: queryKeys.card(id) }),
+    onSettled: () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.lookupAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile }),
+      ]);
+    },
   });
 }

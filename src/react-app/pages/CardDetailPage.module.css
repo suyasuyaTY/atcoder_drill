@@ -1,0 +1,95 @@
+.skeleton {
+  height: 320px;
+  background: var(--surface-sub);
+}
+
+.crumb {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.head,
+.history,
+.danger {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.history,
+.danger {
+  margin-top: 16px;
+}
+.history h2,
+.danger h2,
+.danger p {
+  margin: 0;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.meta,
+.status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.source {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sub);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line-row);
+  white-space: nowrap;
+}
+.table td.note {
+  white-space: normal;
+  min-width: 160px;
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.blocked,
+.error {
+  color: var(--danger);
+}

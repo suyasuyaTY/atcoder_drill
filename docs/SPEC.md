@@ -205,7 +205,7 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | `/session` | セッション（§8.4）。開いているセッションがなければ `/` へ移る |
 | `/register?q=<URL>` | 登録（§7） |
 | `/table?kind=ABC&page=1` | 問題表（§9） |
-| `/cards/:id` | カード詳細と申告履歴 |
+| `/cards/:id` | カード詳細と申告履歴。問題・streak・解禁日・申告の履歴（日時・種類・申告・streak の前後・次の解禁・メモ）と「カードを削除」（押すと確認を出す。削除したら問題表へ戻る） |
 | `/profile` | プロフィール（§5） |
 | `/login` | トークン入力（`AUTH_MODE=token` で未ログインのとき） |
 | `/debug` | デバッグツール（`/api/me` が `debugTools: true` のときだけ表示） |
@@ -228,7 +228,7 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | `DELETE /api/register/items/:cardId` | 今回の登録から取り消す（§7.4 の条件を満たすときだけ。満たさなければ 409 `cannot_undo`、カードがなければ 404） |
 | `POST /api/register/session/close` | 登録を終える |
 | `GET /api/table?kind=ABC&page=1` | 問題表のデータ（20コンテスト分、各セルの状態） |
-| `GET /api/cards/:id`・`DELETE /api/cards/:id` | カード詳細と申告履歴 / カード削除（申告も消える） |
+| `GET /api/cards/:id`・`DELETE /api/cards/:id` | カード詳細と申告履歴 / カード削除（申告も消える）。GET は `{ card: { …, status（cardStatus）, inSession }, attempts }`（申告は新しい順）。開いているセッションに出題中のカードは削除できない（409 `in_session`。申告を済ませれば削除できる） |
 | `GET /api/profile`・`PUT /api/profile` | プロフィール（§5）。`{ atcoderUserId, targets, minDifficulty, maxDifficulty, freshQuota, otherContests: [{ id, title, problemCount }], freshCandidates }`。PUT の本文は `otherContests` と `freshCandidates` を除いた形で、保存後の内容を返す |
 | `GET /api/contests?q=` | その他のコンテストの検索（ID・名前の部分一致、問題数つき。kind = OTHER で問題が1問以上あるものを新しい順に最大20件） |
 | `/api/debug/*` | デバッグツール（`DEBUG_TOOLS=1` のときだけ。それ以外は 404）。`POST /clock`（`{ addDays }`、いまのずれに足す。±3650日まで）、`POST /clock/reset`、`POST /unlock`（`{ target }`、カード ID か問題 ID）、`POST /sample` |
@@ -524,7 +524,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
 - [x] 7. ~~タイマー（`useTimer`）~~ 作らない（§15）
 - [x] 8. ホームのグラフと草（`stats.ts`）
-- [ ] 9. カード詳細とカード削除
+- [x] 9. カード詳細とカード削除
 - [x] 10. ~~提出状況の表示（§7.3）と `user_ac` の同期（§14.2）~~ 作らない
 - [ ] 11. Access 認証への切り替え ※Cloudflare 側の設定は人が行う
 - [ ] 12. 見た目の仕上げとレスポンシブ

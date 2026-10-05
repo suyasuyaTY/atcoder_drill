@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { auth } from "./auth";
 import { apiError, codeForStatus } from "./errors";
+import { cardRoutes } from "./routes/cards";
 import { debugRoutes } from "./routes/debug";
 import { homeRoutes } from "./routes/home";
 import { loginRoutes } from "./routes/login";
@@ -29,6 +30,7 @@ const app = new Hono<AppEnv>()
   .route("/sessions", sessionRoutes)
   .route("/profile", profileRoutes)
   .route("/contests", contestRoutes)
+  .route("/cards", cardRoutes)
   .route("/debug", debugRoutes);
 
 app.notFound((c) => apiError(c, 404, "not_found", "見つかりません"));
