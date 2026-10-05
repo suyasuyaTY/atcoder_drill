@@ -5,7 +5,8 @@
 import type { Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
-import { resolveAuthMode } from "../lib/auth-mode";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+import { accessConfig, resolveAuthMode } from "../lib/auth-mode";
 import { apiError } from "./errors";
 import type { AppEnv } from "./types";
 
@@ -13,6 +14,17 @@ const COOKIE_NAME = "drill_auth";
 const COOKIE_MAX_AGE_SEC = 400 * 24 * 60 * 60;
 /** cookie の値は AUTH_TOKEN そのものではなく、AUTH_TOKEN を鍵にしたこの文字列の HMAC にする */
 const COOKIE_MESSAGE = "drill_auth:v1";
+
+/** Access の公開鍵。isolate の中で使い回す（jose がキャッシュと鍵の入れ替えを扱う） */
+const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+function jwks(url: string) {
+  let set = jwksByUrl.get(url);
+  if (!set) {
+    set = createRemoteJWKSet(new URL(url));
+    jwksByUrl.set(url, set);
+  }
+  return set;
+}
 
 /** 認証なしで通すルート */
 const PUBLIC_ROUTES = [{ method: "POST", path: "/api/login" }];
@@ -38,9 +50,27 @@ export const auth = createMiddleware<AppEnv>(async (c, next) => {
       if (cookie && (await equalsConstantTime(cookie, await cookieValue(c.env.AUTH_TOKEN)))) return next();
       return apiError(c, 401, "unauthorized", "ログインしてください");
     }
-    case "access":
-      // Access の JWT の検証は SPEC §19 のステップ11で作る。それまでは通さない
-      return apiError(c, 500, "auth_misconfigured", "AUTH_MODE=access はまだ使えません");
+    case "access": {
+      const config = accessConfig(c.env);
+      if (!config.ok) {
+        console.error(`auth: ${config.reason}`);
+        return apiError(c, 500, "auth_misconfigured", "認証の設定が正しくありません");
+      }
+      const token = c.req.header("Cf-Access-Jwt-Assertion");
+      if (token) {
+        try {
+          await jwtVerify(token, jwks(config.certsUrl), {
+            issuer: config.issuer,
+            audience: config.audience,
+            algorithms: ["RS256"],
+          });
+          return next();
+        } catch {
+          // 期限切れ・署名違い・aud 違いなど。理由はログに出さない（トークンの中身を残さない）
+        }
+      }
+      return apiError(c, 401, "access_required", "Cloudflare Access でログインしてください");
+    }
   }
 });
 

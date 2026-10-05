@@ -499,7 +499,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 | `access` | 独自ドメイン + Cloudflare Access | `Cf-Access-Jwt-Assertion` を `jose` で検証する（鍵: `https://{ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs`、aud: `ACCESS_AUD`、iss: `https://{ACCESS_TEAM_DOMAIN}`） |
 
 - 未設定や未知の値は 500 を返す（fail closed）。判定は `src/lib/auth-mode.ts` の `resolveAuthMode`（テストあり）。
-- `access` の検証はステップ11で作る。それまでは `access` でも 500 を返す。
+- `access`: `ACCESS_TEAM_DOMAIN` は `<team>.cloudflareaccess.com`、`ACCESS_AUD` は16進64文字でなければ 500（`accessConfig`、`src/lib/auth-mode.ts`）。JWT は RS256 だけを受け付け、公開鍵は isolate の中で使い回す。JWT がない・検証に失敗したら 401（`access_required`）で、画面は「Cloudflare Access のログインが切れています」と出し、読み込み直すと Access のログイン画面に移る。`POST /api/login` は 404。
 - クライアントは、`/api/me` が 401 なら `/login` を表示する（`token` のとき）。
 - 静的アセット（HTML・JS・CSS）は Worker を通らずに配信されるので、`token` のときは誰でも取得できる。中身はアプリのコードだけで、データは含まないため許容する。データは必ず `/api/*` からだけ返す。`access` に切り替えると、静的アセットも含めて Access の内側に入る。
 - CSRF 対策: `/api/*` に `hono/csrf`（Origin の確認）をかける。状態を変える API は JSON の本文だけを受け付ける。
@@ -526,5 +526,5 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 8. ホームのグラフと草（`stats.ts`）
 - [x] 9. カード詳細とカード削除
 - [x] 10. ~~提出状況の表示（§7.3）と `user_ac` の同期（§14.2）~~ 作らない
-- [ ] 11. Access 認証への切り替え ※Cloudflare 側の設定は人が行う
+- [ ] 11. Access 認証への切り替え ※Cloudflare 側の設定は人が行う（Worker 側の JWT の検証は作成済み。正しい JWT で通ることは、切り替えたときに本番で確かめる）
 - [ ] 12. 見た目の仕上げとレスポンシブ

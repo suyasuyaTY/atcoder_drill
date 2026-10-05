@@ -64,9 +64,10 @@ GitHub Actions（週1回）
    - Session duration: 1 month（ブックマークから毎回ログインしなくて済むように）
    - Policy: Allow / Include: Emails = 自分のアドレス
    - ログイン方法: One-time PIN（既定）で十分。GitHub などを足してもよい
-6. 作成したアプリの「Application Audience (AUD) Tag」をコピーし、`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` を `vars` に書く。`AUTH_MODE` を `access` にする。
+6. 作成したアプリの「Application Audience (AUD) Tag」（16進64文字）をコピーし、`ACCESS_TEAM_DOMAIN`（`<team>.cloudflareaccess.com`。`https://` は付けない）/ `ACCESS_AUD` を `vars` に書く。`AUTH_MODE` を `access` にする。形が違うと Worker は 500 を返す（fail closed）。
 7. `"workers_dev": false` と `"preview_urls": false` にしてデプロイする。
-8. 確認: workers.dev の URL が開けないこと。`drill.suyasuyaty.com` が Access のログイン画面になること。ログインしたらアプリが表示されること。
+8. 確認: workers.dev の URL が開けないこと。`drill.suyasuyaty.com` が Access のログイン画面になること。ログインしたらアプリが表示されること（Worker が JWT を検証できている）。`curl https://drill.suyasuyaty.com/api/me` のように Access を通らずに叩くと、Access のログイン画面へのリダイレクトになること。
+9. 動いたら `npx wrangler secret delete AUTH_TOKEN` でトークンを消してよい。
 
 Worker 側でも JWT を検証する（SPEC §17）。Access の設定ミスや経路の抜けがあっても、Worker の手前で素通りしないようにする二重の守り。
 

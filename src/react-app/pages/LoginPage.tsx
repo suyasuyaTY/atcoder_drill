@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { isUnauthorized, useLogin, useMe } from "../api";
+import { ApiError, isUnauthorized, useLogin, useMe } from "../api";
 import { Button } from "../components/Button";
 import { Notice } from "../components/Notice";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -31,6 +31,26 @@ export function LoginPage() {
   };
 
   const otherError = me.isError && !isUnauthorized(me.error) ? me.error : null;
+
+  // AUTH_MODE=access: Cloudflare Access のログインが切れている。読み込み直すと Access のログイン画面に移る
+  if (me.isError && me.error instanceof ApiError && me.error.code === "access_required") {
+    return (
+      <>
+        <header className={styles.header}>
+          <span className={styles.logo}>復習ドリル</span>
+        </header>
+        <main className="page page-profile">
+          <h1>ログイン</h1>
+          <section className={`panel ${styles.form}`}>
+            <p>Cloudflare Access のログインが切れています。ページを読み込み直すと、ログイン画面に移ります。</p>
+            <div>
+              <Button onClick={() => window.location.assign(from)}>読み込み直す</Button>
+            </div>
+          </section>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
