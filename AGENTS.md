@@ -56,6 +56,7 @@ src/
     validate.ts           zod の検証（失敗したら 400）
     env.d.ts              wrangler types が拾わない secret などの型
     clock.ts              now(env)
+    random.ts             crypto.getRandomValues から作る draw() 用の乱数
     kenkoooo.ts           提出 API（SPEC §7.3）
   react-app/              React（SPA）。worker/ を import しない（型の AppType だけは例外）
     main.tsx              エントリ。QueryClient と Router

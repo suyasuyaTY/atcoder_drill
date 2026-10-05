@@ -2,9 +2,20 @@ import type { ReactNode } from "react";
 import styles from "./ExternalLink.module.css";
 
 /** 外部リンク（DESIGN §3 ExternalLink）。新しいタブで開く */
-export function ExternalLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
+export function ExternalLink({
+  href,
+  children,
+  className,
+  onClick,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+  /** 開いたときにしたいこと（セッションでは挑戦中にする） */
+  onClick?: () => void;
+}) {
   return (
-    <a href={href} target="_blank" rel="noopener" className={`${styles.link} ${className ?? ""}`}>
+    <a href={href} target="_blank" rel="noopener" className={`${styles.link} ${className ?? ""}`} onClick={onClick}>
       {children}
       <svg
         width="13"

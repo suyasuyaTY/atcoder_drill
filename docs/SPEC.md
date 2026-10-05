@@ -200,7 +200,7 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 
 | パス | 画面 |
 |---|---|
-| `/?kind=ABC` | ホーム（§8.3） |
+| `/?kind=ABC` | ホーム（§8.3）。`kind` がなければ `ALL`（すべて） |
 | `/session` | セッション（§8.4）。開いているセッションがなければ `/` へ移る |
 | `/register?q=<URL>` | 登録（§7） |
 | `/table?kind=ABC&page=1` | 問題表（§9） |
@@ -217,10 +217,10 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 |---|---|
 | `GET /api/me` | `{ atcoderUserId, debugTools, clockOffsetDays }`。未認証なら 401 |
 | `POST /api/login` | `{ token }`。`AUTH_MODE=token` のときだけ（それ以外は 404）。一致したら cookie を発行する。違えば 401（`invalid_token`） |
-| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計 |
-| `POST /api/sessions` | `{ kind }` で抽選してセッションを作る。開いているセッションがあれば、作らずに 409 とそのセッションを返す |
+| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。初見の件数はステップ6、グラフと草はステップ8で足す |
+| `POST /api/sessions` | `{ kind }` で抽選してセッションを作る（201 と `{ session }`）。開いているセッションがあれば、作らずに 409（`session_open`）とそのセッションを返す。出せる問題がなければ 409（`empty_pool`） |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
-| `POST /api/sessions/current/items/:position/grade` | `{ grade, elapsedSec?, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す |
+| `POST /api/sessions/current/items/:position/grade` | `{ grade, elapsedSec?, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す: `{ position, result: { grade, streakBefore, streakAfter, nextReviewAt, elapsedSec, note }, sessionClosed }`。対象は直近のセッションなので、最後の1問の二重送信（セッションはもう閉じている）でも記録済みの結果を返す。楽観ロックに負けたら 409 |
 | `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、提出状況、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。提出状況はステップ10、`isFreshTarget` はステップ6で足す |
 | `POST /api/register` | `{ items: [{ problemId, grade, elapsedSec?, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId] }` を返す。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
 | `GET /api/register/session` | 開いている登録セッションと、そこで登録した問題 |
@@ -230,11 +230,12 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | `GET /api/cards/:id`・`DELETE /api/cards/:id` | カード詳細と申告履歴 / カード削除（申告も消える） |
 | `GET /api/profile`・`PUT /api/profile` | プロフィール（§5） |
 | `GET /api/contests?q=` | その他のコンテストの検索（ID・名前、問題数つき。最大20件） |
-| `/api/debug/*` | デバッグツール（`DEBUG_TOOLS=1` のときだけ。それ以外は 404） |
+| `/api/debug/*` | デバッグツール（`DEBUG_TOOLS=1` のときだけ。それ以外は 404）。`POST /clock`（`{ addDays }`、いまのずれに足す。±3650日まで）、`POST /clock/reset`、`POST /unlock`（`{ target }`、カード ID か問題 ID）、`POST /sample` |
 
 ### 8.3 ホーム
 
 - 種類の選択（§6.1）と、選んだ種類での「今回の3問」の内訳、「3問を引く」。0件なら押せない。復習が0件のときは「次の解禁は 10/4」も表示する。
+- ステップ6までは初見がないので、説明は「解禁中の復習から、解禁からの日数が長いものほど出やすく引きます。」にする。
 - 開いているセッションがあれば、選択の代わりに「セッションを再開（1 / 3）」だけを表示する。
 - 統計: 現役 / 復習の解禁中 / 卒業 / 初見の候補。
 - 30日グラフと草（§10）。
@@ -247,7 +248,8 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 - `GradeBar` の補足文は、その問題の streak から `apply()` で計算して表示する（初見は streak 0 として計算する）。確定はサーバーが返した結果で表示し直す。
 - 「問題を開く」は新しいタブで開き、タイマーが止まっていれば開始する。
 - 申告の送信中はボタンを無効にする（二重送信を防ぐ）。
-- 3問とも申告したら、ホームに戻して「セッション完了: 余裕 1 ・ 苦戦 1 ・ 解けず 1」を1回だけ表示する。
+- 3問とも申告したら、ホームに戻して「セッション完了: 余裕 1 ・ 苦戦 1 ・ 解けず 1」を1回だけ表示する（履歴の state で渡し、表示したら消す。リロードや戻るでは出さない）。
+- 未着手から挑戦中にするのは「開始」か「問題を開く」。挑戦中は同時に1問だけ。タイマーはステップ7で足す。
 
 ## 9. 問題表
 
@@ -444,7 +446,7 @@ attempts に `streak_before` / `streak_after` / `next_review_at` を残すのは
 
 - 時計を ±N 日ずらす。いまのずれを表示し、0 に戻すボタンも置く。
 - 指定したカードを今すぐ解禁する（`next_review_at = now()`）。
-- サンプルデータを入れる（ローカル D1 だけ）。
+- サンプルデータを入れる（ローカル D1 だけ）。カードのない ABC / ARC / AGC の C〜F から12問を選び、streak 0 の解禁中・streak 1 の解禁中・streak 0 の待機中・卒業を3枚ずつ、登録の申告（卒業は復習の申告も）と一緒に入れる。問題データの同期が先に要る。
 - 画面上部に「DEBUG ・ 時計 +N日」の帯を常に表示する。
 
 ## 14. 同期スクリプト
@@ -521,7 +523,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 1. 土台: 純粋関数（`clock` / `difficulty` / `problem-id` / `contest` / `format`）とテスト、マイグレーション 0001、API の骨組み（エラー形式・zod・RPC の型の書き出し）、認証（`none` / `token`）と CSRF、React 側のレイアウト・ルーター・トークン・`/api/me` と `/login`
 - [x] 2. 同期スクリプト（§14.1 を `--local` で確認）
 - [x] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
-- [ ] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
+- [x] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する
 - [ ] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
 - [ ] 7. タイマー（`useTimer`）

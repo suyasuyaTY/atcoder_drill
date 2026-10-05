@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { CONTEST_KINDS } from "../lib/contest";
+import { CONTEST_KINDS, SESSION_KINDS } from "../lib/contest";
 import { GRADES, type Grade } from "../lib/scheduler";
 
 /** AtCoder のコンテスト ID・問題 ID（大文字を含むことがある） */
@@ -57,6 +57,43 @@ export const cardIdParam = z.object({ cardId: positiveInt });
 export const tableQuery = z.object({
   kind: z.enum(CONTEST_KINDS).default("ABC"),
   page: positiveInt.pipe(z.number().max(10000)).default(1),
+});
+
+export const homeQuery = z.object({
+  kind: z.enum(SESSION_KINDS).default("ALL"),
+});
+
+export const createSessionBody = z.strictObject({
+  kind: z.enum(SESSION_KINDS),
+});
+
+export const positionParam = z.object({
+  position: z
+    .string()
+    .regex(/^[1-3]$/)
+    .transform(Number),
+});
+
+export const gradeBody = z.strictObject({
+  grade,
+  elapsedSec: z.number().int().min(0).max(86400).optional(),
+  note: z.string().max(1000).optional(),
+});
+export type GradeBody = z.infer<typeof gradeBody>;
+
+/** デバッグツール（SPEC §13） */
+export const debugClockBody = z.strictObject({
+  addDays: z
+    .number()
+    .int()
+    .min(-3650)
+    .max(3650)
+    .refine((d) => d !== 0, { message: "0 日はずらせない" }),
+});
+
+export const debugUnlockBody = z.strictObject({
+  /** カード ID か問題 ID */
+  target: z.string().trim().min(1).max(100),
 });
 
 /** エラーのレスポンス（SPEC §8） */

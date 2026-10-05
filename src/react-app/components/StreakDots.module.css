@@ -1,0 +1,33 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dot {
+  border: 1.5px solid var(--text-faint);
+  border-radius: var(--r-pill);
+}
+.small .dot {
+  width: 10px;
+  height: 10px;
+}
+.large .dot {
+  width: 14px;
+  height: 14px;
+}
+
+.done {
+  background: var(--grade-easy-bg);
+  border-color: var(--grade-easy-bg);
+}
+
+.text {
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -5,8 +5,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { hc, type ClientResponse, type parseResponse } from "hono/client";
-import type { ContestKind } from "../lib/contest";
-import type { ErrorBody, LoginBody, RegisterBody } from "../shared/schema";
+import type { ContestKind, SessionKind } from "../lib/contest";
+import type { ErrorBody, GradeBody, LoginBody, RegisterBody } from "../shared/schema";
 import type { AppType } from "../worker/index";
 
 export const client = hc<AppType>(window.location.origin);
@@ -51,6 +51,9 @@ export const queryKeys = {
   regSession: ["register", "session"] as const,
   tableAll: ["table"] as const,
   table: (kind: ContestKind, page: number) => ["table", kind, page] as const,
+  homeAll: ["home"] as const,
+  home: (kind: SessionKind) => ["home", kind] as const,
+  session: ["session", "current"] as const,
 };
 
 export function useMe() {
@@ -124,3 +127,63 @@ export function useTable(kind: ContestKind, page: number) {
     placeholderData: (prev) => prev,
   });
 }
+
+export function useHome(kind: SessionKind) {
+  return useQuery({
+    queryKey: queryKeys.home(kind),
+    queryFn: () => call(client.api.home.$get({ query: { kind } })),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useCurrentSession() {
+  return useQuery({
+    queryKey: queryKeys.session,
+    queryFn: () => call(client.api.sessions.current.$get()),
+  });
+}
+
+export function useCreateSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (kind: SessionKind) => call(client.api.sessions.$post({ json: { kind } })),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+      ]),
+  });
+}
+
+export function useGrade() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ position, body }: { position: number; body: GradeBody }) =>
+      call(
+        client.api.sessions.current.items[":position"].grade.$post({ param: { position: String(position) }, json: body }),
+      ),
+    // 取り直しは待たない。待つと、最後の申告でセッションが null になって画面が外れ、
+    // mutate に渡した onSuccess（ホームへ戻して内訳を出す）が呼ばれなくなる
+    onSettled: () => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.homeAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
+      ]);
+    },
+  });
+}
+
+/** デバッグツール。時計やカードが変わるので、終わったら全部取り直す */
+function useDebugMutation<T, V>(fn: (v: V) => Promise<T>) {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: fn, onSettled: () => queryClient.invalidateQueries() });
+}
+
+export const useDebugClock = () =>
+  useDebugMutation((addDays: number) => call(client.api.debug.clock.$post({ json: { addDays } })));
+export const useDebugClockReset = () => useDebugMutation(() => call(client.api.debug.clock.reset.$post()));
+export const useDebugUnlock = () =>
+  useDebugMutation((target: string) => call(client.api.debug.unlock.$post({ json: { target } })));
+export const useDebugSample = () => useDebugMutation(() => call(client.api.debug.sample.$post()));
