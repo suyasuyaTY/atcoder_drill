@@ -67,7 +67,6 @@ export interface ItemResult {
   streakBefore: number;
   streakAfter: number;
   nextReviewAt: string | null;
-  elapsedSec: number | null;
   note: string | null;
 }
 
@@ -91,7 +90,6 @@ type ItemRow = Omit<SessionItem, "source" | "result" | "streak"> & {
   streakBefore: number | null;
   streakAfter: number | null;
   resultNextReviewAt: string | null;
-  elapsedSec: number | null;
   note: string | null;
 };
 
@@ -102,7 +100,7 @@ export async function sessionItems(db: D1Database, sessionId: number): Promise<S
               COALESCE(p.contest_id, c.contest_id) AS contestId, COALESCE(p.problem_index, c.problem_index) AS problemIndex,
               COALESCE(p.title, c.title) AS title, p.difficulty_disp AS difficulty, si.card_id AS cardId, c.streak,
               a.grade, a.streak_before AS streakBefore, a.streak_after AS streakAfter,
-              a.next_review_at AS resultNextReviewAt, a.elapsed_sec AS elapsedSec, a.note
+              a.next_review_at AS resultNextReviewAt, a.note
        FROM session_items si
        LEFT JOIN problems p ON p.id = si.problem_id
        LEFT JOIN cards c ON c.id = si.card_id
@@ -131,7 +129,6 @@ export async function sessionItems(db: D1Database, sessionId: number): Promise<S
             streakBefore: r.streakBefore!,
             streakAfter: r.streakAfter!,
             nextReviewAt: r.resultNextReviewAt,
-            elapsedSec: r.elapsedSec,
             note: r.note,
           },
   }));
@@ -142,7 +139,6 @@ export interface ReviewGrade {
   cardId: number;
   attemptedAt: string;
   grade: Grade;
-  elapsedSec: number | null;
   note: string | null;
   streakBefore: number;
   streakAfter: number;
@@ -159,17 +155,16 @@ export async function gradeReview(db: D1Database, g: ReviewGrade): Promise<{ wri
   const [insert, , close] = await db.batch([
     db
       .prepare(
-        `INSERT INTO attempts (card_id, kind, session_id, reg_session_id, attempted_at, grade, elapsed_sec,
+        `INSERT INTO attempts (card_id, kind, session_id, reg_session_id, attempted_at, grade,
                                streak_before, streak_after, next_review_at, note)
-         SELECT ?1, 'review', ?2, NULL, ?3, ?4, ?5, ?6, ?7, ?8, ?9
-         WHERE EXISTS (SELECT 1 FROM cards WHERE id = ?1 AND streak = ?6 AND graduated_at IS NULL)`,
+         SELECT ?1, 'review', ?2, NULL, ?3, ?4, ?5, ?6, ?7, ?8
+         WHERE EXISTS (SELECT 1 FROM cards WHERE id = ?1 AND streak = ?5 AND graduated_at IS NULL)`,
       )
       .bind(
         g.cardId,
         g.sessionId,
         g.attemptedAt,
         g.grade,
-        g.elapsedSec,
         g.streakBefore,
         g.streakAfter,
         g.nextReviewAt,

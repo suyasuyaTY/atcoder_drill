@@ -34,7 +34,7 @@ describe("registerBody", () => {
 
   it("最小の形と、任意の項目", () => {
     expect(registerBody.parse({ items: [item] })).toEqual({ items: [item] });
-    const full = { ...item, elapsedSec: 600, note: "メモ", title: "新しい問題", contestId: "abc999" };
+    const full = { ...item, note: "メモ", title: "新しい問題", contestId: "abc999" };
     expect(registerBody.parse({ items: [full] })).toEqual({ items: [full] });
   });
 
@@ -50,8 +50,8 @@ describe("registerBody", () => {
     expect(bad({ grade: "perfect" })).toBe(false);
     expect(bad({ problemId: "abc 306" })).toBe(false);
     expect(bad({ problemId: "../x" })).toBe(false);
-    expect(bad({ elapsedSec: -1 })).toBe(false);
-    expect(bad({ elapsedSec: 1.5 })).toBe(false);
+    // かかった時間は記録しない（SPEC §15）
+    expect(bad({ elapsedSec: 600 })).toBe(false);
     expect(bad({ note: "x".repeat(1001) })).toBe(false);
     expect(bad({ extra: 1 })).toBe(false);
   });
@@ -98,7 +98,8 @@ describe("homeQuery / createSessionBody", () => {
 describe("gradeBody / positionParam", () => {
   it("申告", () => {
     expect(gradeBody.parse({ grade: "hard" })).toEqual({ grade: "hard" });
-    expect(gradeBody.parse({ grade: "easy", elapsedSec: 300, note: "x" })).toEqual({ grade: "easy", elapsedSec: 300, note: "x" });
+    expect(gradeBody.parse({ grade: "easy", note: "x" })).toEqual({ grade: "easy", note: "x" });
+    expect(gradeBody.safeParse({ grade: "easy", elapsedSec: 300 }).success).toBe(false);
     expect(gradeBody.safeParse({ grade: "ok" }).success).toBe(false);
     expect(gradeBody.safeParse({ grade: "easy", streak: 1 }).success).toBe(false);
   });

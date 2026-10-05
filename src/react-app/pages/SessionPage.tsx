@@ -47,7 +47,7 @@ export function SessionPage() {
 function SessionView({ session }: { session: Session }) {
   const navigate = useNavigate();
   const grade = useGrade();
-  /** 挑戦中の問題（1問だけ）。タイマーはステップ7で足す */
+  /** 挑戦中の問題（1問だけ） */
   const [active, setActive] = useState<number | null>(null);
 
   const graded = session.items.filter((i) => i.result !== null).length;

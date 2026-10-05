@@ -178,7 +178,6 @@ npm run deploy
 
 - `CLOUDFLARE_API_TOKEN`: Cloudflare のダッシュボードで作る。権限は「Account › D1 › Edit」だけ
 - `CLOUDFLARE_ACCOUNT_ID`
-- （Variables タブ）`ATCODER_USER_ID`: 自分の AtCoder ID。AC 済みの問題を初見から外すのに使う
 
 ワークフローのファイル（`.github/workflows/sync.yml`。問題データの同期）は、SPEC §19 のステップ5で Claude Code に作らせる。
 

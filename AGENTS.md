@@ -57,14 +57,13 @@ src/
     env.d.ts              wrangler types が拾わない secret などの型
     clock.ts              now(env)
     random.ts             crypto.getRandomValues から作る draw() 用の乱数
-    kenkoooo.ts           提出 API（SPEC §7.3）
   react-app/              React（SPA）。worker/ を import しない（型の AppType だけは例外）
     main.tsx              エントリ。QueryClient と Router
     routes.tsx            画面のルート（SPEC §8.1）
     api.ts                hc<AppType> のクライアントと、TanStack Query のフック
     pages/                Home / Session / Register / Table / CardDetail / Profile / Login / Debug
     components/           DESIGN.md §3 のコンポーネント
-    hooks/                useTimer など
+    hooks/                usePageTitle など
     styles/               tokens.css（DESIGN.md §2）と共通スタイル
   shared/                 サーバーとクライアントの両方で使う zod スキーマと型
   lib/                    純粋関数。D1・fetch・Hono・React・cloudflare:workers を import しない
@@ -112,7 +111,7 @@ tests/                    lib と shared のテスト
 
 15. サーバーのデータは TanStack Query で取得・更新する。申告や登録のあとは、関係するクエリを invalidate して取り直す。サーバーのデータをコンポーネントの state に写して持ち回らない。
 16. 画面の状態（選んだ種類・ページ・検索語）は URL のクエリに持たせる。
-17. localStorage はタイマーにだけ使う（`useTimer`）。
+17. localStorage・sessionStorage は使わない（タイマーは作らない。SPEC §15）。
 18. 色・フォント・角丸は `tokens.css` の変数だけを使う。新しい色を足さない。グラデーション、左端だけ太い線、絵文字、明朝体は使わない。スタイルは CSS Modules か共通 CSS で書き、インラインの style は動的な値（グラフの高さなど）だけにする。
 19. グラフ（30日の棒・草）は、API が返した集計を React で div か SVG として描く。
 20. 画面の文言は日本語。申告の表示は SPEC §2.2 のとおり。difficulty を表示する画面には出典を書く。

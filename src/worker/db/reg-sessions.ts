@@ -41,7 +41,6 @@ export interface RegisterAttempt {
   problemId: string;
   attemptedAt: string;
   grade: Grade;
-  elapsedSec: number | null;
   streakAfter: number;
   nextReviewAt: string;
   note: string | null;
@@ -51,11 +50,11 @@ export interface RegisterAttempt {
 export function insertRegisterAttempt(db: D1Database, a: RegisterAttempt): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO attempts (card_id, kind, session_id, reg_session_id, attempted_at, grade, elapsed_sec,
+      `INSERT INTO attempts (card_id, kind, session_id, reg_session_id, attempted_at, grade,
                              streak_before, streak_after, next_review_at, note)
-       VALUES ((SELECT id FROM cards WHERE problem_id = ?), 'register', NULL, ${OPEN_ID}, ?, ?, ?, 0, ?, ?, ?)`,
+       VALUES ((SELECT id FROM cards WHERE problem_id = ?), 'register', NULL, ${OPEN_ID}, ?, ?, 0, ?, ?, ?)`,
     )
-    .bind(a.problemId, a.attemptedAt, a.grade, a.elapsedSec, a.streakAfter, a.nextReviewAt, a.note);
+    .bind(a.problemId, a.attemptedAt, a.grade, a.streakAfter, a.nextReviewAt, a.note);
 }
 
 export interface RegSessionItem {

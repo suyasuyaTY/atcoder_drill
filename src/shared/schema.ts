@@ -29,8 +29,6 @@ const registerItem = z
   .strictObject({
     problemId: atcoderId,
     grade,
-    /** かかった時間（秒）。24時間まで */
-    elapsedSec: z.number().int().min(0).max(86400).optional(),
     note: z.string().max(1000).optional(),
     /** 問題データが未同期のときだけ。手入力のタイトルと、その問題のコンテスト */
     title: z.string().trim().min(1).max(200).optional(),
@@ -76,7 +74,6 @@ export const positionParam = z.object({
 
 export const gradeBody = z.strictObject({
   grade,
-  elapsedSec: z.number().int().min(0).max(86400).optional(),
   note: z.string().max(1000).optional(),
 });
 export type GradeBody = z.infer<typeof gradeBody>;

@@ -101,7 +101,6 @@ export const sessionRoutes = new Hono<AppEnv>()
         cardId: item.cardId,
         attemptedAt: at,
         grade: body.grade,
-        elapsedSec: body.elapsedSec ?? null,
         note: body.note?.trim() || null,
         streakBefore: item.streak,
         streakAfter: r.streak,

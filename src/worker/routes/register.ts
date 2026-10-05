@@ -101,7 +101,6 @@ export const registerRoutes = new Hono<AppEnv>()
         problemId: item.problemId,
         attemptedAt: at,
         grade: item.grade,
-        elapsedSec: item.elapsedSec ?? null,
         streakAfter: r.streak,
         nextReviewAt: card.nextReviewAt,
         note: item.note?.trim() || null,

@@ -23,7 +23,7 @@
 
 ### 2.1 自己申告にする理由
 
-提出 API（kenkoooo）で AC かどうかは取れるが、解説を見て AC したのか自力で AC したのかは区別できない。そのため申告は自己申告にする。提出データは補助として、登録画面での AC / WA の表示と、AC 済みの問題を初見から外す処理にだけ使う。
+提出 API（kenkoooo）で AC かどうかは取れるが、解説を見て AC したのか自力で AC したのかは区別できない。そのため申告は自己申告にする。提出データは使わない（登録画面での AC / WA の表示も、AC 済みの問題を初見から外す処理もしない）。解いた問題は自分で登録する。
 
 ### 2.2 申告の3段階
 
@@ -88,7 +88,6 @@
 | AGC | 問題記号のチェック（A〜F） | なし |
 | その他のコンテスト | コンテスト単位で選ぶ（検索して追加） | なし |
 | difficulty の下限・上限 | 補正後の値（§10.1）。上限は「未満」。NULL の問題は範囲に関係なく含める | なし |
-| AC 済みを除く | `user_ac`（§14.2）にある問題を初見から外す | オン（AtCoder ID があるとき） |
 | 初見の枠 | 1セッション3問のうち、初見に優先して割り当てる数（0〜3） | 2 |
 
 判定は純粋関数で行う（`src/lib/eligibility.ts`）。
@@ -161,23 +160,19 @@
 ### 7.2 問題を選んで登録する
 
 1. `GET /register?q=<URL>` で、コンテストなら全問、問題ならその1問を、`problems` から問題記号順に並べる。
-2. 1行が1問。左に記号・タイトル・difficulty・提出状況（§7.3）・「初見の対象」ラベル（`isFreshTarget` が真の問題）、右に `GradeBar`（WA | AC | AC）を置く。初期値はどれも選んでいない（= 登録しない）。
+2. 1行が1問。左に記号・タイトル・difficulty・「初見の対象」ラベル（`isFreshTarget` が真の問題）、右に `GradeBar`（WA | AC | AC）を置く。初期値はどれも選んでいない（= 登録しない）。
 3. すでにカードがある問題は、`GradeBar` の代わりに「登録済み ・ カードを開く」を表示する。
 4. 「N問を登録」で `POST /register` に送る。N はボタンを選んだ問題の数。
 5. 登録した問題は、プロフィールの設定に関係なく復習に出る。何も選ばなかった問題は記録しない（初見の対象なら、後で初見として出ることがある）。
-6. 問題1問だけの場合は、かかった時間（分、任意）とメモ（任意）も入力できる。
+6. 問題1問だけの場合は、メモ（任意）も入力できる。かかった時間は記録しない（§15）。
 7. `problems` にない場合（同期前の新しいコンテストなど）は、「問題データが未同期です」と表示する。問題の URL なら、タイトルを手入力して登録できる。
    - コンテストは URL のものを使い、記号は問題 ID の最後の `_` より後ろを大文字にしたもの（`abc999_d` → `D`、`guessProblemIndex`）、difficulty は NULL にする。
    - 短縮形の問題 ID（`abc999_d`）ではコンテストが分からないので、手入力の登録はできない（問題の URL を貼るよう案内する）。
    - 以前に手入力で登録した問題は、未同期のままでもカードから「登録済み」と表示する。
 
-### 7.3 提出状況の表示
+### 7.3 提出状況の表示（作らない）
 
-- プロフィールに AtCoder ID があれば、kenkoooo の提出 API から、そのコンテストの自分の提出を1回だけ取る。
-  - `https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user={id}&from_second={コンテスト開始の epoch 秒}`
-- 各問題に「AC」（AC がある）/「WA」（提出はあるが AC がない）/「—」（提出なし）を表示する。
-- 表示するだけで、ボタンの初期値には使わない。
-- 取得に失敗したら全部「—」にして、画面はふつうに出す。User-Agent を付ける。
+提出 API は使わない（§2.1）。登録画面に AC / WA は出さない。
 
 ### 7.4 登録セッション
 
@@ -220,9 +215,9 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。初見の件数はステップ6、グラフと草はステップ8で足す |
 | `POST /api/sessions` | `{ kind }` で抽選してセッションを作る（201 と `{ session }`）。開いているセッションがあれば、作らずに 409（`session_open`）とそのセッションを返す。出せる問題がなければ 409（`empty_pool`） |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
-| `POST /api/sessions/current/items/:position/grade` | `{ grade, elapsedSec?, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す: `{ position, result: { grade, streakBefore, streakAfter, nextReviewAt, elapsedSec, note }, sessionClosed }`。対象は直近のセッションなので、最後の1問の二重送信（セッションはもう閉じている）でも記録済みの結果を返す。楽観ロックに負けたら 409 |
-| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、提出状況、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。提出状況はステップ10、`isFreshTarget` はステップ6で足す |
-| `POST /api/register` | `{ items: [{ problemId, grade, elapsedSec?, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId] }` を返す。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
+| `POST /api/sessions/current/items/:position/grade` | `{ grade, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す: `{ position, result: { grade, streakBefore, streakAfter, nextReviewAt, note }, sessionClosed }`。対象は直近のセッションなので、最後の1問の二重送信（セッションはもう閉じている）でも記録済みの結果を返す。楽観ロックに負けたら 409 |
+| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。`isFreshTarget` はステップ6で足す |
+| `POST /api/register` | `{ items: [{ problemId, grade, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId] }` を返す。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
 | `GET /api/register/session` | 開いている登録セッションと、そこで登録した問題 |
 | `DELETE /api/register/items/:cardId` | 今回の登録から取り消す（§7.4 の条件を満たすときだけ。満たさなければ 409 `cannot_undo`、カードがなければ 404） |
 | `POST /api/register/session/close` | 登録を終える |
@@ -244,12 +239,12 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 
 - 上部に種類・抽選時刻・内訳・進捗を表示する（例:「ABC のセッション」「初見 2 ・ 復習 1」）。
 - 各問題に「復習」か「初見」のラベルを付ける。初見には streak の代わりに「まだ登録していない問題」と表示する。
-- 各問題は3状態: 未着手（「開始」と「問題を開く」）、挑戦中（タイマー・`GradeBar`・メモ）、申告済み（1行に畳む）。
+- 各問題は3状態: 未着手（「開始」と「問題を開く」）、挑戦中（`GradeBar`・メモ）、申告済み（1行に畳む）。
 - `GradeBar` の補足文は、その問題の streak から `apply()` で計算して表示する（初見は streak 0 として計算する）。確定はサーバーが返した結果で表示し直す。
-- 「問題を開く」は新しいタブで開き、タイマーが止まっていれば開始する。
+- 「問題を開く」は新しいタブで開き、その問題を挑戦中にする。
 - 申告の送信中はボタンを無効にする（二重送信を防ぐ）。
 - 3問とも申告したら、ホームに戻して「セッション完了: 余裕 1 ・ 苦戦 1 ・ 解けず 1」を1回だけ表示する（履歴の state で渡し、表示したら消す。リロードや戻るでは出さない）。
-- 未着手から挑戦中にするのは「開始」か「問題を開く」。挑戦中は同時に1問だけ。タイマーはステップ7で足す。
+- 未着手から挑戦中にするのは「開始」か「問題を開く」。挑戦中は同時に1問だけ。
 
 ## 9. 問題表
 
@@ -331,7 +326,7 @@ CREATE INDEX problems_contest ON problems (contest_id, problem_index);
 CREATE INDEX problems_kind ON problems (kind, index_norm);
 
 CREATE TABLE user_ac (
-  problem_id  TEXT PRIMARY KEY,              -- 自分が AC した問題（§14.2）
+  problem_id  TEXT PRIMARY KEY,              -- 使わない（§14.2）。0001 で作ってしまったので残してある
   first_ac_at TEXT NOT NULL
 );
 
@@ -341,7 +336,7 @@ CREATE TABLE profile (
   fresh_targets   TEXT NOT NULL,             -- JSON: {"ABC":["F","G"],"ARC":[],"AGC":[],"OTHER":["dp","tdpc","typical90"]}
   min_difficulty  INTEGER,                   -- 補正後。NULL = 下限なし
   max_difficulty  INTEGER,                   -- 補正後、この値未満。NULL = 上限なし
-  exclude_solved  INTEGER NOT NULL DEFAULT 1,
+  exclude_solved  INTEGER NOT NULL DEFAULT 1, -- 使わない（§14.2）
   fresh_quota     INTEGER NOT NULL DEFAULT 2 CHECK (fresh_quota BETWEEN 0 AND 3),
   updated_at      TEXT NOT NULL
 );
@@ -398,7 +393,7 @@ CREATE TABLE attempts (
   reg_session_id INTEGER REFERENCES reg_sessions (id),   -- register のとき
   attempted_at   TEXT NOT NULL,
   grade          TEXT NOT NULL CHECK (grade IN ('easy', 'hard', 'failed')),
-  elapsed_sec    INTEGER,
+  elapsed_sec    INTEGER,                    -- 使わない（§15）。常に NULL
   streak_before  INTEGER NOT NULL,           -- register / fresh は 0
   streak_after   INTEGER NOT NULL,
   next_review_at TEXT,                       -- この申告で決まった解禁日（卒業なら NULL）
@@ -409,7 +404,7 @@ CREATE INDEX attempts_time ON attempts (attempted_at);
 CREATE UNIQUE INDEX attempts_once_per_session ON attempts (session_id, card_id) WHERE session_id IS NOT NULL;
 
 CREATE TABLE app_meta (
-  key   TEXT PRIMARY KEY,   -- 'problems_synced_at' / 'user_ac_synced_epoch' / 'debug_clock_offset_days'
+  key   TEXT PRIMARY KEY,   -- 'problems_synced_at' / 'debug_clock_offset_days'
   value TEXT NOT NULL
 );
 ```
@@ -471,19 +466,13 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - `--dry-run` を付けると、SQL を作るだけで流さない。取得した問題が1000件未満なら、取得の失敗とみなして止める。
 - 最後に `app_meta.problems_synced_at` を更新する。
 
-### 14.2 自分の AC（`user_ac`）
+### 14.2 自分の AC（作らない）
 
-- 環境変数 `ATCODER_USER_ID` があるときだけ実行する。
-- `app_meta.user_ac_synced_epoch` から先の提出を、提出 API で500件ずつ取得する（リクエストの間は1秒以上空ける）。AC の `problem_id` を `user_ac` に入れる（すでにあれば無視）。
-- 最後に処理した提出の epoch 秒を `user_ac_synced_epoch` に保存する。
+自分の AC は同期しない。AC 済みの問題を初見から自動で外すこともしない（解いた問題は自分で登録する）。`user_ac` テーブルと `profile.exclude_solved` は 0001 で作ってしまったので残してあるが、使わない。
 
-## 15. タイマー
+## 15. かかった時間（記録しない）
 
-- クライアント側の localStorage に保存する（リロードや AtCoder との行き来で消えないように）。localStorage を使うのはタイマーだけ。`useTimer` フックにまとめる。
-- キーは `drill:timer:v1:{sessionId}:{position}`、値は `{"accMs": number, "runningSince": number | null}`。
-- 1問を開始すると、ほかの問題のタイマーは一時停止する。
-- 申告するとき、その時点の経過秒数を `elapsedSec` として送る。
-- セッション画面を開いたら、いまのセッション以外のキーは消す。
+まとまった時間で解くとは限らず、時間から苦戦したかどうかを判断できないので、かかった時間は記録しない。タイマーも入力欄も作らない。`attempts.elapsed_sec` は常に NULL。localStorage も使わない。
 
 ## 16. バックアップ
 
@@ -526,9 +515,9 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する
 - [ ] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
-- [ ] 7. タイマー（`useTimer`）
+- [x] 7. ~~タイマー（`useTimer`）~~ 作らない（§15）
 - [ ] 8. ホームのグラフと草（`stats.ts`）
 - [ ] 9. カード詳細とカード削除
-- [ ] 10. 提出状況の表示（§7.3）と `user_ac` の同期（§14.2）
+- [x] 10. ~~提出状況の表示（§7.3）と `user_ac` の同期（§14.2）~~ 作らない
 - [ ] 11. Access 認証への切り替え ※Cloudflare 側の設定は人が行う
 - [ ] 12. 見た目の仕上げとレスポンシブ

@@ -74,7 +74,6 @@ Worker 側でも JWT を検証する（SPEC §17）。Access の設定ミスや�
 
 - Workers Free の CPU 時間は、HTTP リクエストも Cron Trigger も1回 10ms まで。
 - `contests.json`・`problems.json`・`problem-models.json`・`contest-problem.json` は合わせて数 MB あり、`JSON.parse` だけで 10ms を超える可能性が高い。
-- 例外として、登録画面での提出 API の呼び出し（1ユーザー・1コンテスト分、数百件まで）はリクエスト内で行ってよい。この程度なら 10ms に収まる。
 - 方法は2つ考えられる。
   - 採用: GitHub Actions + Node スクリプトで同期する（無料、CPU 制限なし）
   - 不採用: Workers Paid（$5/月）にして、Cron Trigger + 独自エントリポイント（`src/worker.ts` で `handle()` と `scheduled()` を export）で同期する
@@ -85,8 +84,6 @@ Worker 側でも JWT を検証する（SPEC §17）。Access の設定ミスや�
 - secrets
   - `CLOUDFLARE_API_TOKEN`: 権限は「Account › D1 › Edit」だけ
   - `CLOUDFLARE_ACCOUNT_ID`
-- variables
-  - `ATCODER_USER_ID`: 自分の AC を `user_ac` に同期するとき（SPEC §14.2）。なければその処理を飛ばす
 - スケジュール: `cron: '0 18 * * 0'`（月曜 03:00 JST）と `workflow_dispatch`（手動実行）
 - 手順: `npm ci` → `npm run sync:problems -- --remote`
 

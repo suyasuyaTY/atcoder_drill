@@ -66,10 +66,8 @@ function LookupResult({ q }: { q: string }) {
   const lookup = useLookup(q);
   const reg = useRegister();
   const [grades, setGrades] = useState<Record<string, Grade>>({});
-  const [minutes, setMinutes] = useState("");
   const [note, setNote] = useState("");
   const [manualTitle, setManualTitle] = useState("");
-  const minutesId = useId();
   const noteId = useId();
   const titleId = useId();
 
@@ -104,15 +102,11 @@ function LookupResult({ q }: { q: string }) {
   }
 
   const selected = Object.entries(grades);
-  const extras = () => ({
-    ...(minutes !== "" ? { elapsedSec: Math.round(Number(minutes) * 60) } : {}),
-    ...(note.trim() !== "" ? { note: note.trim() } : {}),
-  });
-  const minutesValid = minutes === "" || (Number.isFinite(Number(minutes)) && Number(minutes) >= 0 && Number(minutes) <= 1440);
+  const extras = () => (note.trim() !== "" ? { note: note.trim() } : {});
   const items: RegisterItem[] = manual
     ? selected.map(([problemId, grade]) => ({ problemId, grade, title: manualTitle.trim(), contestId: manual.contestId, ...extras() }))
     : selected.map(([problemId, grade]) => ({ problemId, grade, ...(single ? extras() : {}) }));
-  const canSubmit = items.length > 0 && minutesValid && (manual === null || manualTitle.trim() !== "") && !reg.isPending;
+  const canSubmit = items.length > 0 && (manual === null || manualTitle.trim() !== "") && !reg.isPending;
 
   const submit = () =>
     reg.mutate(
@@ -120,7 +114,6 @@ function LookupResult({ q }: { q: string }) {
       {
         onSuccess: () => {
           setGrades({});
-          setMinutes("");
           setNote("");
         },
       },
@@ -184,21 +177,6 @@ function LookupResult({ q }: { q: string }) {
 
       {(single || manual) && problems.every((p) => p.cardId === null) && (
         <div className={styles.extras}>
-          <div className={styles.field}>
-            <label htmlFor={minutesId} className={styles.label}>
-              かかった時間（分、任意）
-            </label>
-            <input
-              id={minutesId}
-              type="number"
-              min={0}
-              max={1440}
-              step={1}
-              className={`${styles.input} ${styles.minutes}`}
-              value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-            />
-          </div>
           <div className={`${styles.field} ${styles.grow}`}>
             <label htmlFor={noteId} className={styles.label}>
               メモ（任意）
