@@ -23,5 +23,6 @@
 		"noUncheckedIndexedAccess": true,
 		"noUncheckedSideEffectImports": true
 	},
-	"include": ["src/react-app", "src/lib", "src/shared"]
+	"include": ["src/react-app", "src/lib", "src/shared"],
+	"references": [{ "path": "./tsconfig.worker.json" }]
 }

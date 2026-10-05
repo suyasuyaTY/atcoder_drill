@@ -40,8 +40,9 @@ GitHub Actions（週1回）
 | `DEBUG_TOOLS` | var | `1` | 設定しない | 設定しない |
 
 - `wrangler.jsonc` の `vars` には本番の値を書き、ローカルでは `.dev.vars` で上書きする。
-- `wrangler.jsonc` や `.dev.vars` を変えたら `npm run cf-typegen` で `CloudflareBindings` 型を作り直す。
-- コードからは `new Hono<{ Bindings: CloudflareBindings }>()` として、`c.env.DB` などで読む。
+- `wrangler.jsonc` や `.dev.vars` を変えたら `npm run cf-typegen` で `Env` 型（`worker-configuration.d.ts`）を作り直す。
+- `.dev.vars` にない値（secret の `AUTH_TOKEN`、Phase B の `ACCESS_*`）は `Env` に入らないので、`src/worker/env.d.ts` に省略可能として足してある。
+- コードからは `new Hono<{ Bindings: Env }>()`（`src/worker/types.ts` の `AppEnv`）として、`c.env.DB` などで読む。
 
 ## 4. 認証のフェーズ
 

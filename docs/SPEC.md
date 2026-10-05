@@ -75,7 +75,7 @@
 
 ### 4.1 問題記号の正規化
 
-`normalizeIndex(problemIndex)`: `Ex` は `H` として扱う。それ以外は先頭の英大文字1文字（`F2` → `F`）。同期時に `problems.index_norm` に入れる。
+`normalizeIndex(problemIndex)`: `Ex` は `H` として扱う。それ以外は先頭の英大文字1文字（`F2` → `F`）。英大文字を含まない記号はそのまま返す。同期時に `problems.index_norm` に入れる。
 
 ## 5. 初見で出す問題（プロフィール）
 
@@ -153,6 +153,10 @@
 | `https://atcoder.jp/contests/abc306/tasks/abc306_d` | 問題 |
 | `ABC306`、`abc306_d`（短縮形。画面では案内しないが受け付ける） | コンテスト / 問題 |
 
+- ID は小文字にそろえる。`atcoder.jp` 以外のホストや、解釈できない形は受け付けない。
+- URL の問題は、URL のコンテストに属するものとして扱う（`/contests/abc042/tasks/arc058_a` のように、問題 ID の接頭辞とコンテストが違うことがある）。
+- 短縮形の問題 ID（`abc306_d`）からはコンテストを決めない。`problems.contest_id` から引く。
+
 ### 7.2 問題を選んで登録する
 
 1. `GET /register?q=<URL>` で、コンテストなら全問、問題ならその1問を、`problems` から問題記号順に並べる。
@@ -208,7 +212,7 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | メソッド・パス | 内容 |
 |---|---|
 | `GET /api/me` | `{ atcoderUserId, debugTools, clockOffsetDays }`。未認証なら 401 |
-| `POST /api/login` | `{ token }`。`AUTH_MODE=token` のときだけ。一致したら cookie を発行する |
+| `POST /api/login` | `{ token }`。`AUTH_MODE=token` のときだけ（それ以外は 404）。一致したら cookie を発行する。違えば 401（`invalid_token`） |
 | `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計 |
 | `POST /api/sessions` | `{ kind }` で抽選してセッションを作る。開いているセッションがあれば、作らずに 409 とそのセッションを返す |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
@@ -477,10 +481,11 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 | AUTH_MODE | 使う場面 | 挙動 |
 |---|---|---|
 | `none` | ローカル開発だけ | 認証しない。`DEBUG_TOOLS=1` のときだけ許可する（それ以外でこの値なら 500） |
-| `token` | ドメイン準備前（workers.dev） | `POST /api/login` の `token` が secret `AUTH_TOKEN` と一致したら、cookie `drill_auth` を発行する。以降は cookie を定数時間比較で検証する。cookie は HttpOnly・Secure・SameSite=Lax・400日 |
+| `token` | ドメイン準備前（workers.dev） | `POST /api/login` の `token` が secret `AUTH_TOKEN` と一致したら、cookie `drill_auth` を発行する。以降は cookie を定数時間比較で検証する。cookie は HttpOnly・Secure・SameSite=Lax・400日。cookie の値は `AUTH_TOKEN` そのものではなく、`AUTH_TOKEN` を鍵にした固定文字列の HMAC-SHA256（`AUTH_TOKEN` を変えると、発行済みの cookie はすべて無効になる）。`AUTH_TOKEN` が未設定なら 500 |
 | `access` | 独自ドメイン + Cloudflare Access | `Cf-Access-Jwt-Assertion` を `jose` で検証する（鍵: `https://{ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs`、aud: `ACCESS_AUD`、iss: `https://{ACCESS_TEAM_DOMAIN}`） |
 
-- 未設定や未知の値は 500 を返す（fail closed）。
+- 未設定や未知の値は 500 を返す（fail closed）。判定は `src/lib/auth-mode.ts` の `resolveAuthMode`（テストあり）。
+- `access` の検証はステップ11で作る。それまでは `access` でも 500 を返す。
 - クライアントは、`/api/me` が 401 なら `/login` を表示する（`token` のとき）。
 - 静的アセット（HTML・JS・CSS）は Worker を通らずに配信されるので、`token` のときは誰でも取得できる。中身はアプリのコードだけで、データは含まないため許容する。データは必ず `/api/*` からだけ返す。`access` に切り替えると、静的アセットも含めて Access の内側に入る。
 - CSRF 対策: `/api/*` に `hono/csrf`（Origin の確認）をかける。状態を変える API は JSON の本文だけを受け付ける。
@@ -497,7 +502,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 縦に1本ずつ通す。各ステップは `npm test`・`npm run typecheck`・`npm run build` がすべて通った状態で終える。
 
 - [x] 0. scheduler（`src/lib/scheduler.ts`）とテスト
-- [ ] 1. 土台: 純粋関数（`clock` / `difficulty` / `problem-id` / `contest` / `format`）とテスト、マイグレーション 0001、API の骨組み（エラー形式・zod・RPC の型の書き出し）、認証（`none` / `token`）と CSRF、React 側のレイアウト・ルーター・トークン・`/api/me` と `/login`
+- [x] 1. 土台: 純粋関数（`clock` / `difficulty` / `problem-id` / `contest` / `format`）とテスト、マイグレーション 0001、API の骨組み（エラー形式・zod・RPC の型の書き出し）、認証（`none` / `token`）と CSRF、React 側のレイアウト・ルーター・トークン・`/api/me` と `/login`
 - [ ] 2. 同期スクリプト（§14.1 を `--local` で確認）
 - [ ] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
 - [ ] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール

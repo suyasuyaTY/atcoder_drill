@@ -1,0 +1,36 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--r-l);
+  font-weight: 700;
+  cursor: pointer;
+}
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primary {
+  background: var(--primary);
+  color: var(--surface);
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.outline {
+  background: var(--surface);
+  border-color: var(--text);
+}
+
+.danger {
+  background: var(--surface);
+  border-color: var(--danger);
+  color: var(--danger);
+}

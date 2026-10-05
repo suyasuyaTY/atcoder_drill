@@ -52,6 +52,9 @@ src/
     routes/               me / home / sessions / register / table / cards / profile / contests / debug
     db/                   テーブルごとのクエリ
     auth.ts               AUTH_MODE ごとの認証
+    errors.ts             エラーのレスポンス（apiError）
+    validate.ts           zod の検証（失敗したら 400）
+    env.d.ts              wrangler types が拾わない secret などの型
     clock.ts              now(env)
     kenkoooo.ts           提出 API（SPEC §7.3）
   react-app/              React（SPA）。worker/ を import しない（型の AppType だけは例外）
@@ -66,6 +69,7 @@ src/
   lib/                    純粋関数。D1・fetch・Hono・React・cloudflare:workers を import しない
     scheduler.ts          apply / register / draw / planSlots（実装済み）
     clock.ts              時計のずれの計算
+    auth-mode.ts          AUTH_MODE の解釈（fail closed）
     difficulty.ts         表示用の補正と色帯
     problem-id.ts         URL の解析
     contest.ts            コンテストの種類（kind）の判定と一覧

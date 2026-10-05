@@ -1,0 +1,65 @@
+:root {
+  /* 地・面・文字 */
+  --bg:            #F6F7F9;
+  --surface:       #FFFFFF;
+  --surface-sub:   #FAFBFC;  /* 表ヘッダー・フッター */
+  --surface-done:  #F0F2F5;  /* 申告済みのカード */
+  --chip-bg:       #EEF1F4;  /* ナビの選択中・セグメントの地 */
+  --text:          #1F2329;
+  --text-muted:    #5E6672;  /* 白地で 5.9:1 */
+  --text-faint:    #9AA3AD;  /* 非活性・未達成の丸だけ。文章には使わない */
+  --line:          #E3E6EA;
+  --line-strong:   #CDD2D8;  /* 入力欄・副ボタンの枠 */
+  --line-row:      #EEF0F3;
+
+  /* 操作 */
+  --primary:       #1F2329;  /* 主ボタン。白文字 */
+  --link:          #1F6FD1;
+  --link-hover:    #164F96;
+  --danger:        #B33A0A;
+
+  /* 申告（明度も変えてあるので、色の見え方によらず区別できる） */
+  --grade-easy-bg:   #1F7A4D;  /* 白文字 */
+  --grade-hard-bg:   #F6C25B;  /* 黒文字 */
+  --grade-failed-bg: #FFFFFF;  /* 黒文字 + --line-strong の枠 */
+
+  /* 初見の対象ラベル */
+  --fresh-bg:      #EAF2FD;
+  --fresh-text:    #164F96;
+
+  /* 問題表の状態 */
+  --cell-off:      #E9ECEF;  /* 未登録・出ない */
+  --cell-streak0:  #FDE4C2;
+  --cell-streak1:  #D6E6FA;
+  --cell-graduated:#CFEBD8;
+  --cell-pool-ring: inset 0 0 0 2px #1F2329;
+
+  /* 草（0〜4） */
+  --grass-0: #E6E9ED;
+  --grass-1: #BFE3C8;
+  --grass-2: #7CC593;
+  --grass-3: #3E9A5E;
+  --grass-4: #1F6B3E;
+
+  /* 注意の帯 */
+  --notice-bg:   #FFF6E5;
+  --notice-line: #F1D7A6;
+
+  /* difficulty の色帯（AtCoder Problems の慣例に合わせる。点・棒にだけ使い、文字色には使わない） */
+  --diff-gray: #808080; --diff-brown: #804000; --diff-green: #008000; --diff-cyan: #00C0C0;
+  --diff-blue: #0000FF; --diff-yellow: #C0C000; --diff-orange: #FF8000; --diff-red: #FF0000;
+
+  /* 文字 */
+  --font: 'Lato', 'Noto Sans JP', sans-serif;
+
+  /* 角丸 */
+  --r-s: 6px;  --r-m: 8px;  --r-l: 10px;  --r-xl: 14px;  --r-pill: 999px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+}
