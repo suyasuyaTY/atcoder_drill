@@ -75,6 +75,7 @@ src/
     contest.ts            コンテストの種類（kind）の判定と一覧
     eligibility.ts        isFreshTarget / buildFreshQuery / cardStatus
     stats.ts              30日グラフと草の集計
+    problem-sync.ts       同期の変換（所属コンテストの決定）と SQL の組み立て
     format.ts             JST の表示、「あと N日」
 migrations/               0001_init.sql から連番
 scripts/                  sync-problems.ts（Node で実行）

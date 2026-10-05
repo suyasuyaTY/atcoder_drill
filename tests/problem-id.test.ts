@@ -47,6 +47,15 @@ describe("parseProblemInput", () => {
     });
   });
 
+  it("URL の ID は大文字小文字をそのまま残す（APG4b など大文字を含むコンテストがある）", () => {
+    expect(parseProblemInput("https://atcoder.jp/contests/APG4b")).toEqual({ type: "contest", contestId: "APG4b" });
+    expect(parseProblemInput("https://atcoder.jp/contests/DEGwer2023/tasks/1202Contest_a")).toEqual({
+      type: "problem",
+      contestId: "DEGwer2023",
+      problemId: "1202Contest_a",
+    });
+  });
+
   it("ハイフンを含むコンテスト", () => {
     expect(parseProblemInput("https://atcoder.jp/contests/jsc2019-qual/tasks/jsc2019_qual_a")).toEqual({
       type: "problem",

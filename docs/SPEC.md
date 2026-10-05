@@ -153,9 +153,10 @@
 | `https://atcoder.jp/contests/abc306/tasks/abc306_d` | 問題 |
 | `ABC306`、`abc306_d`（短縮形。画面では案内しないが受け付ける） | コンテスト / 問題 |
 
-- ID は小文字にそろえる。`atcoder.jp` 以外のホストや、解釈できない形は受け付けない。
+- `atcoder.jp` 以外のホストや、解釈できない形は受け付けない。
 - URL の問題は、URL のコンテストに属するものとして扱う（`/contests/abc042/tasks/arc058_a` のように、問題 ID の接頭辞とコンテストが違うことがある）。
 - 短縮形の問題 ID（`abc306_d`）からはコンテストを決めない。`problems.contest_id` から引く。
+- URL の ID は大文字小文字をそのまま使う（`APG4b`、`chokudai_S001` のように大文字を含むコンテストがある）。短縮形は小文字にそろえるので、サーバーは短縮形を大文字小文字を区別せずに引く。
 
 ### 7.2 問題を選んで登録する
 
@@ -449,8 +450,16 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
   - `https://kenkoooo.com/atcoder/resources/contests.json`
   - `https://kenkoooo.com/atcoder/resources/problems.json`
   - `https://kenkoooo.com/atcoder/resources/problem-models.json`（difficulty はここにある）
-- 同期のときに `kind`・`index_norm`・`difficulty_disp` を計算して入れる（`src/lib` の関数を使い回す）。
-- UPSERT は値が変わった行だけ更新する（`ON CONFLICT DO UPDATE ... WHERE` で差分のある行に絞る）。
+  - `https://kenkoooo.com/atcoder/resources/contest-problem.json`（どのコンテストにどの問題が、どの記号で入っているか）
+- 問題が属するコンテストは1つに決める（`homeContest`、`src/lib/problem-sync.ts`）。`problems.json` の `contest_id` は使わない（`abc306_d` が AtCoder Daily Training の G になっているなど、再収録先のことがある）。
+  1. `contest-problem.json` で、問題 ID の接頭辞と一致するコンテスト（`abc306_d` → `abc306`。コンテスト ID のハイフンはアンダースコアとして比べる）
+  2. なければ、収録しているコンテストのうち開始がいちばん早いもの（同時刻なら ID 順）
+  - `problem_index` は、そのコンテストでの記号にする。
+  - ABC と ARC の同時開催（ABC042〜ABC111 の46回）の共通問題（`arc058_a` など）は、1 により ARC 側に属する。問題表の ABC042 の行は A・B だけになり、C・D は ARC058 の行に出る。初見の判定も ARC の問題として行う。
+- 同期のときに `kind`・`index_norm`・`difficulty_disp` を計算して入れる（`src/lib` の関数を使い回す）。問題名は `problems.json` の `name`（記号を含まない）を使う。
+- UPSERT は値が変わった行だけ更新する（`ON CONFLICT DO UPDATE ... WHERE` で差分のある行に絞る）。`synced_at` は値が変わった行だけ新しくなる。行は削除しない。
+- SQL の生成は純粋関数（`buildSyncSql`）にしてテストする。値は `sqlLiteral` でだけ埋め込む（SQL ファイルを流すので bind() を使えない）。
+- `--dry-run` を付けると、SQL を作るだけで流さない。取得した問題が1000件未満なら、取得の失敗とみなして止める。
 - 最後に `app_meta.problems_synced_at` を更新する。
 
 ### 14.2 自分の AC（`user_ac`）
@@ -503,7 +512,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 
 - [x] 0. scheduler（`src/lib/scheduler.ts`）とテスト
 - [x] 1. 土台: 純粋関数（`clock` / `difficulty` / `problem-id` / `contest` / `format`）とテスト、マイグレーション 0001、API の骨組み（エラー形式・zod・RPC の型の書き出し）、認証（`none` / `token`）と CSRF、React 側のレイアウト・ルーター・トークン・`/api/me` と `/login`
-- [ ] 2. 同期スクリプト（§14.1 を `--local` で確認）
+- [x] 2. 同期スクリプト（§14.1 を `--local` で確認）
 - [ ] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
 - [ ] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する

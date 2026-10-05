@@ -73,7 +73,7 @@ Worker 側でも JWT を検証する（SPEC §17）。Access の設定ミスや�
 ## 5. 問題データの同期を Worker でやらない理由
 
 - Workers Free の CPU 時間は、HTTP リクエストも Cron Trigger も1回 10ms まで。
-- `contests.json`・`problems.json`・`problem-models.json` は合わせて数 MB あり、`JSON.parse` だけで 10ms を超える可能性が高い。
+- `contests.json`・`problems.json`・`problem-models.json`・`contest-problem.json` は合わせて数 MB あり、`JSON.parse` だけで 10ms を超える可能性が高い。
 - 例外として、登録画面での提出 API の呼び出し（1ユーザー・1コンテスト分、数百件まで）はリクエスト内で行ってよい。この程度なら 10ms に収まる。
 - 方法は2つ考えられる。
   - 採用: GitHub Actions + Node スクリプトで同期する（無料、CPU 制限なし）
