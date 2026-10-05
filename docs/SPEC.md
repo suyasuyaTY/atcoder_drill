@@ -218,7 +218,7 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 |---|---|
 | `GET /api/me` | `{ atcoderUserId, debugTools, clockOffsetDays }`。未認証なら 401 |
 | `POST /api/login` | `{ token }`。`AUTH_MODE=token` のときだけ（それ以外は 404）。一致したら cookie を発行する。違えば 401（`invalid_token`） |
-| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。`freshQuota`（プロフィールの初見の枠）も返す。グラフと草はステップ8で足す |
+| `GET /api/home?kind=ABC` | ホームに必要なもの一式: 種類ごとの `{ review, fresh }` 件数、選んだ種類の `planSlots` の結果、統計、次の解禁日、開いているセッションの有無、30日グラフと草の集計。`kind` の既定は `ALL`。`{ kind, kinds, plan, stats, nextUnlockAt, openSession }`（`openSession` は `{ id, kind, drawnAt, total, graded }` か `null`）。`freshQuota`（プロフィールの初見の枠）、`daily`（30日グラフ）、`grass`（草）も返す（§10） |
 | `POST /api/sessions` | `{ kind }` で抽選してセッションを作る（201 と `{ session }`）。開いているセッションがあれば、作らずに 409（`session_open`）とそのセッションを返す。出せる問題がなければ 409（`empty_pool`） |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
 | `POST /api/sessions/current/items/:position/grade` | `{ grade, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す: `{ position, result: { grade, streakBefore, streakAfter, nextReviewAt, note }, sessionClosed }`。対象は直近のセッションなので、最後の1問の二重送信（セッションはもう閉じている）でも記録済みの結果を返す。楽観ロックに負けたら 409 |
@@ -286,13 +286,17 @@ AtCoder Problems の Table のように、行をコンテスト、列を問題�
 - 今日を含む直近30日を、1日1本で並べる。
 - 1本 = その日の `grade IN ('easy', 'hard')` の申告（登録・初見・復習のすべて）。1問1ブロックで、difficulty の色帯ごとに下から易しい順に積む。
 - 右上に30日の合計を表示する。
+- 色帯は `problems.difficulty_disp`、問題データが未同期なら `cards.difficulty` を補正した値で決める。
+- 日付のラベルは、今日から7日おきに付ける。
+- 集計は `dailySolved(attempts, now)`。`/api/home` の `daily: [{ date: "2026-10-01", blocks: [色帯] }]`（古い日から30本）。
 
 ### 10.3 取り組みの記録（草）
 
 - 直近53週。列が週（日曜始まり）、行が曜日。未来の日は描かない。
 - 数えるのは、その日の申告の数（grade は問わない）。
 - 濃さは5段階: 0 / 1 / 2〜3 / 4〜5 / 6以上。
-- 右上に1年の合計を表示する。各セルの `title` に「9/14: 3回」と書く。
+- 右上に1年の合計を表示する（表示している53週の合計）。各セルの `title` に「9/14: 3回」と書く。
+- 始まりは、今週の日曜の52週前の日曜（`grassStart`）。集計は `grass(attempts, now)`。`/api/home` の `grass: { weeks: [[{ date, count, level } | null]], total }`（`weeks[列][曜日]`、未来の日は null）。
 
 ## 11. データモデル（D1）
 
@@ -519,7 +523,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する（ワークフロー `.github/workflows/sync.yml` と手順 `docs/CLOUDFLARE.md` §7 は用意済み。デプロイが済んだらチェックする）
 - [x] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）
 - [x] 7. ~~タイマー（`useTimer`）~~ 作らない（§15）
-- [ ] 8. ホームのグラフと草（`stats.ts`）
+- [x] 8. ホームのグラフと草（`stats.ts`）
 - [ ] 9. カード詳細とカード削除
 - [x] 10. ~~提出状況の表示（§7.3）と `user_ac` の同期（§14.2）~~ 作らない
 - [ ] 11. Access 認証への切り替え ※Cloudflare 側の設定は人が行う

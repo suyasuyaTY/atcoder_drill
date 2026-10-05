@@ -4,6 +4,8 @@ import { isSessionKind, type SessionKind } from "../../lib/contest";
 import { formatJstDate } from "../../lib/format";
 import { ApiError, useCreateSession, useHome } from "../api";
 import { Button, LinkButton } from "../components/Button";
+import { DailyBars } from "../components/DailyBars";
+import { Grass } from "../components/Grass";
 import { KindPicker } from "../components/KindPicker";
 import { Notice } from "../components/Notice";
 import { Stat } from "../components/Stat";
@@ -112,6 +114,11 @@ export function HomePage() {
             <Stat label="卒業" value={home.data.stats.graduated} />
             <Stat label="初見の候補" value={home.data.stats.freshCandidates} />
           </section>
+
+          <div className={styles.charts}>
+            <DailyBars days={home.data.daily} />
+            <Grass weeks={home.data.grass.weeks} total={home.data.grass.total} />
+          </div>
         </>
       )}
     </main>

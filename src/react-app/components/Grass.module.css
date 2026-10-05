@@ -1,0 +1,101 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.head h2,
+.head p {
+  margin: 0;
+}
+
+.total {
+  color: var(--text-muted);
+}
+.totalNum {
+  margin: 0 4px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+/* 草はこの面の中だけ横にスクロールする（DESIGN §7） */
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  display: flex;
+  gap: 4px;
+  width: max-content;
+}
+
+.week,
+.weekdays {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weekdays span {
+  height: 13px;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--text-muted);
+}
+.weekdays span:first-child {
+  height: 14px;
+}
+
+.month {
+  height: 14px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: visible;
+  width: 13px;
+}
+
+.cell,
+.future {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+}
+
+.l0 {
+  background: var(--grass-0);
+}
+.l1 {
+  background: var(--grass-1);
+}
+.l2 {
+  background: var(--grass-2);
+}
+.l3 {
+  background: var(--grass-3);
+}
+.l4 {
+  background: var(--grass-4);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.legend .cell {
+  display: inline-block;
+}

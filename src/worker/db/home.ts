@@ -1,4 +1,5 @@
 import type { ContestKind, SessionKind } from "../../lib/contest";
+import type { Grade } from "../../lib/scheduler";
 
 /** 種類ごとの、解禁中の復習の数 */
 export async function unlockedCountsByKind(db: D1Database, now: Date): Promise<Partial<Record<ContestKind, number>>> {
@@ -52,4 +53,26 @@ export async function sessionProgress(db: D1Database, sessionId: number): Promis
     .bind(sessionId)
     .first<{ total: number; graded: number }>();
   return row ?? { total: 0, graded: 0 };
+}
+
+export interface RecentAttempt {
+  attemptedAt: string;
+  grade: Grade;
+  /** problems の補正後の値。未同期なら null */
+  problemDifficulty: number | null;
+  /** カードのスナップショット（生の値） */
+  cardDifficulty: number | null;
+}
+
+/** since 以降の申告（グラフと草の集計用） */
+export async function attemptsSince(db: D1Database, since: Date): Promise<RecentAttempt[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT a.attempted_at AS attemptedAt, a.grade, p.difficulty_disp AS problemDifficulty, c.difficulty AS cardDifficulty
+       FROM attempts a JOIN cards c ON c.id = a.card_id LEFT JOIN problems p ON p.id = c.problem_id
+       WHERE a.attempted_at >= ?`,
+    )
+    .bind(since.toISOString())
+    .all<RecentAttempt>();
+  return results;
 }

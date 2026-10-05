@@ -1,14 +1,16 @@
 /**
- * ホーム（SPEC §6.1、§8.3）。30日グラフと草はステップ8で足す
+ * ホーム（SPEC §6.1、§8.3、§10）
  */
 
 import { Hono } from "hono";
 import { CONTEST_KINDS, SESSION_KINDS, type SessionKind } from "../../lib/contest";
+import { displayDifficulty } from "../../lib/difficulty";
 import { planSlots } from "../../lib/scheduler";
+import { dailySolved, grass, grassStart } from "../../lib/stats";
 import { homeQuery } from "../../shared/schema";
 import { now } from "../clock";
 import { countFresh } from "../db/fresh";
-import { cardStats, nextUnlockAt, sessionProgress, unlockedCountsByKind } from "../db/home";
+import { attemptsSince, cardStats, nextUnlockAt, sessionProgress, unlockedCountsByKind } from "../db/home";
 import { getProfile } from "../db/profile";
 import { openSession } from "../db/sessions";
 import type { AppEnv } from "../types";
@@ -25,7 +27,9 @@ export const homeRoutes = new Hono<AppEnv>().get("/", validate("query", homeQuer
   const t = await now(c.env);
 
   const { fresh: profile } = await getProfile(db);
-  const [unlocked, stats, next, session, ...freshCounts] = await Promise.all([
+  const [recent, unlocked, stats, next, session, ...freshCounts] = await Promise.all([
+    // 草の範囲（直近53週）は30日グラフの範囲を含む
+    attemptsSince(db, grassStart(t)),
     unlockedCountsByKind(db, t),
     cardStats(db, t),
     nextUnlockAt(db, kind, t),
@@ -58,6 +62,15 @@ export const homeRoutes = new Hono<AppEnv>().get("/", validate("query", homeQuer
       stats: { ...stats, freshCandidates: kinds.ALL.fresh },
       nextUnlockAt: next,
       openSession: session ? { ...session, ...(await sessionProgress(db, session.id)) } : null,
+      daily: dailySolved(
+        recent.map((a) => ({
+          attemptedAt: a.attemptedAt,
+          grade: a.grade,
+          difficulty: a.problemDifficulty ?? displayDifficulty(a.cardDifficulty),
+        })),
+        t,
+      ),
+      grass: grass(recent, t),
     },
     200,
   );

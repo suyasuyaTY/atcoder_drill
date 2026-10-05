@@ -1,0 +1,120 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.head h2,
+.head p {
+  margin: 0;
+}
+
+.total {
+  color: var(--text-muted);
+}
+.totalNum {
+  margin-right: 4px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+/* グラフはこの面の中だけ横にスクロールする（DESIGN §7） */
+.scroll {
+  overflow-x: auto;
+}
+
+.chart {
+  display: flex;
+  gap: 9px;
+  width: max-content;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 24px;
+}
+
+.bar {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 24px;
+  height: 150px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.block {
+  flex: none;
+  width: 24px;
+  border-radius: 3px;
+}
+
+.date {
+  height: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gray {
+  background: var(--diff-gray);
+}
+.brown {
+  background: var(--diff-brown);
+}
+.green {
+  background: var(--diff-green);
+}
+.cyan {
+  background: var(--diff-cyan);
+}
+.blue {
+  background: var(--diff-blue);
+}
+.yellow {
+  background: var(--diff-yellow);
+}
+.orange {
+  background: var(--diff-orange);
+}
+.red {
+  background: var(--diff-red);
+}

@@ -75,6 +75,13 @@
   margin-top: 16px;
 }
 
+.charts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
 @media (max-width: 720px) {
   .stats {
     grid-template-columns: repeat(2, 1fr);
