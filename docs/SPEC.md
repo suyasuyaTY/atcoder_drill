@@ -167,6 +167,9 @@
 5. 登録した問題は、プロフィールの設定に関係なく復習に出る。何も選ばなかった問題は記録しない（初見の対象なら、後で初見として出ることがある）。
 6. 問題1問だけの場合は、かかった時間（分、任意）とメモ（任意）も入力できる。
 7. `problems` にない場合（同期前の新しいコンテストなど）は、「問題データが未同期です」と表示する。問題の URL なら、タイトルを手入力して登録できる。
+   - コンテストは URL のものを使い、記号は問題 ID の最後の `_` より後ろを大文字にしたもの（`abc999_d` → `D`、`guessProblemIndex`）、difficulty は NULL にする。
+   - 短縮形の問題 ID（`abc999_d`）ではコンテストが分からないので、手入力の登録はできない（問題の URL を貼るよう案内する）。
+   - 以前に手入力で登録した問題は、未同期のままでもカードから「登録済み」と表示する。
 
 ### 7.3 提出状況の表示
 
@@ -180,7 +183,7 @@
 
 - 登録は「登録セッション」にまとめる。最初に登録したときに自動で開く。
 - 登録画面の下部に、開いている登録セッションで登録した問題を一覧表示する（今回の登録）。各行に「取り消す」を置く。
-- 「取り消す」は、登録セッションが開いていて、そのカードに登録時の申告しかない場合だけできる。カードと、その登録の申告を削除する。
+- 「取り消す」は、登録セッションが開いていて、そのカードに登録時の申告しかない場合だけできる。カードと、その登録の申告を削除する。セッション（§6.3）に出題中のカードも取り消せない。
 - 「登録を終える」で閉じる。開いてから24時間たった登録セッションは、次に登録したときに自動で閉じ、新しい登録セッションを開く。
 
 ## 8. 画面と API
@@ -218,10 +221,10 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 | `POST /api/sessions` | `{ kind }` で抽選してセッションを作る。開いているセッションがあれば、作らずに 409 とそのセッションを返す |
 | `GET /api/sessions/current` | 開いているセッション（なければ `null`） |
 | `POST /api/sessions/current/items/:position/grade` | `{ grade, elapsedSec?, note? }`。結果（streak の前後、次の解禁日、セッションが閉じたか）を返す |
-| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、提出状況、カードの有無、`isFreshTarget`） |
-| `POST /api/register` | `{ items: [{ problemId, grade, elapsedSec?, note?, title? }] }`。登録した問題と、登録済みで飛ばした問題を返す |
+| `GET /api/register/lookup?q=<URL>` | URL を解析し、問題の一覧を返す（各問題の difficulty、提出状況、カードの有無、`isFreshTarget`）。`{ target, contest, problems, manual }`。`manual` は未同期の問題を手入力で登録するときの既定値（`{ problemId, contestId, problemIndex }`）。解析できなければ 400（`invalid_url`）。提出状況はステップ10、`isFreshTarget` はステップ6で足す |
+| `POST /api/register` | `{ items: [{ problemId, grade, elapsedSec?, note?, title?, contestId? }] }`（1〜100件、同じ問題は1回まで）。`title` と `contestId` は未同期の問題を手入力で登録するときだけ、組で渡す。`{ registered: [{ cardId, problemId }], skipped: [problemId] }` を返す。問題データになく `title` もない問題があれば 400（`unknown_problem`）で、何も書き込まない。同時に同じ問題の登録が届いたら 409 |
 | `GET /api/register/session` | 開いている登録セッションと、そこで登録した問題 |
-| `DELETE /api/register/items/:cardId` | 今回の登録から取り消す（§7.4 の条件を満たすときだけ） |
+| `DELETE /api/register/items/:cardId` | 今回の登録から取り消す（§7.4 の条件を満たすときだけ。満たさなければ 409 `cannot_undo`、カードがなければ 404） |
 | `POST /api/register/session/close` | 登録を終える |
 | `GET /api/table?kind=ABC&page=1` | 問題表のデータ（20コンテスト分、各セルの状態） |
 | `GET /api/cards/:id`・`DELETE /api/cards/:id` | カード詳細と申告履歴 / カード削除（申告も消える） |
@@ -251,15 +254,19 @@ React の SPA（Vite でビルドし、Worker の静的アセットとして配�
 AtCoder Problems の Table のように、行をコンテスト、列を問題記号にして、各問題の状態を色で表示する。
 
 - タブは ABC / ARC / AGC / その他。行は新しいコンテストから順に並べ、20コンテストずつページ送りにする。
-- 「その他」タブに出すのは、プロフィールで選んだコンテストと、カードが1枚以上あるコンテストだけ。
-- 列はその種類の問題記号（ABC は A〜G。表示中のコンテストに Ex/H があれば列を足す）。
+- 「その他」タブに出すのは、プロフィールで選んだコンテストと、カードが1枚以上あるコンテストだけ（プロフィールで選んだコンテストはステップ6で足す）。
+- 問題が1問もないコンテストは出さない。
+- 列はその種類の問題記号（`index_norm`）。基本の列（ABC は A〜G、ARC・AGC は A〜F）に、表示中のコンテストにあるほかの記号（Ex/H、ARC の G など）を足す（`tableColumns`、`src/lib/contest.ts`）。`F` と `F2` のように同じ列に2問入るときは、セルの中に縦に並べ、記号も書く。
+- 「その他」は記号がコンテストごとにばらばら（`001`〜`090` など、1回で最大137問）なので列をそろえない。行の中に問題を記号順に並べて折り返す。
 - セル: difficulty の点、タイトル、状態の補足。押すと、カードがあればカード詳細へ、なければ問題単位の登録画面（`/register?q=<問題 URL>`）へ移る。
-- 状態は `cardStatus(problem, card, profile, now)`（`src/lib/eligibility.ts`）で決める。
+- 状態は `cardStatus(problem, card, profile, now)`（`src/lib/eligibility.ts`）で決める。サーバーで計算して `/api/table` に含める。ステップ3の時点では `cardStatus(card, now)` で、ステップ6で問題とプロフィールを受け取るように広げる。
 
 | 状態 | 条件 | セル |
 |---|---|---|
 | 未登録・初見に出る | カードなし、`isFreshTarget` が真 | 白 |
 | 未登録・出ない | カードなし、`isFreshTarget` が偽 | 灰 |
+
+ステップ6までは2つを区別せず、どちらも「未登録」（白）と表示する。
 | 待機中 | 現役・未解禁 | streak 0 は橙系、1 は青系。補足「あと N日」 |
 | 解禁中 | 現役・解禁済み | streak の色に濃い枠。補足「解禁 N日」 |
 | 卒業 | `graduated_at` あり | 緑系。補足「卒業」 |
@@ -513,7 +520,7 @@ Worker の中では取得しない。Workers Free の CPU 時間は1回 10ms で
 - [x] 0. scheduler（`src/lib/scheduler.ts`）とテスト
 - [x] 1. 土台: 純粋関数（`clock` / `difficulty` / `problem-id` / `contest` / `format`）とテスト、マイグレーション 0001、API の骨組み（エラー形式・zod・RPC の型の書き出し）、認証（`none` / `token`）と CSRF、React 側のレイアウト・ルーター・トークン・`/api/me` と `/login`
 - [x] 2. 同期スクリプト（§14.1 を `--local` で確認）
-- [ ] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
+- [x] 3. 登録（URL から選ぶ・登録セッション）と問題表（この時点では「初見に出る / 出ない」の区別なし）
 - [ ] 4. 復習の抽選 → セッション → 申告、ホーム（種類の選択。この時点では復習だけ）、デバッグツール
 - [ ] 5. デプロイ（token 認証、workers.dev）と Actions の同期 ※人が実行する
 - [ ] 6. プロフィールと初見（`eligibility.ts`、`planSlots` による混ぜ方、初見の申告、問題表の初見の区別）

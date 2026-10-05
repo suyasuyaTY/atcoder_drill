@@ -6,6 +6,8 @@ import { auth } from "./auth";
 import { apiError, codeForStatus } from "./errors";
 import { loginRoutes } from "./routes/login";
 import { meRoutes } from "./routes/me";
+import { registerRoutes } from "./routes/register";
+import { tableRoutes } from "./routes/table";
 import type { AppEnv } from "./types";
 
 // Worker に来るのは /api/* だけ（wrangler.jsonc の run_worker_first）。画面のパスは静的アセットが返す
@@ -16,7 +18,9 @@ const app = new Hono<AppEnv>()
   .use(csrf())
   .use(auth)
   .route("/login", loginRoutes)
-  .route("/me", meRoutes);
+  .route("/me", meRoutes)
+  .route("/register", registerRoutes)
+  .route("/table", tableRoutes);
 
 app.notFound((c) => apiError(c, 404, "not_found", "見つかりません"));
 

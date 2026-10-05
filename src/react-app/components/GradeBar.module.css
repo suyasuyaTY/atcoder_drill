@@ -1,0 +1,85 @@
+.bar {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-l);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.compact {
+  width: 300px;
+  max-width: 100%;
+  height: 44px;
+}
+
+.large {
+  width: 100%;
+  height: 72px;
+}
+
+.button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0 4px;
+  border: 0;
+  border-left: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.2;
+  cursor: pointer;
+}
+.button:first-child {
+  border-left: 0;
+}
+.button:hover:not(:disabled):not([aria-pressed="true"]) {
+  background: var(--surface-sub);
+}
+.button:disabled {
+  cursor: not-allowed;
+}
+.button:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -3px;
+}
+
+.main {
+  font-weight: 700;
+}
+.compact .main {
+  font-size: 13px;
+}
+.large .main {
+  font-size: 18px;
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.large .sub {
+  font-size: 12px;
+}
+
+.failed {
+  background: var(--primary);
+  color: var(--surface);
+}
+.hard {
+  background: var(--grade-hard-bg);
+  color: var(--text);
+}
+.easy {
+  background: var(--grade-easy-bg);
+  color: var(--surface);
+}
+.failed .sub,
+.easy .sub {
+  color: var(--surface);
+}
+.hard .sub {
+  color: var(--text);
+}

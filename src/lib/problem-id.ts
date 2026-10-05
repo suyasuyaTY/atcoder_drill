@@ -44,3 +44,13 @@ function parseUrl(text: string): ParsedInput | null {
   if (!ID.test(task)) return null;
   return { type: "problem", contestId, problemId: task };
 }
+
+/** 問題のページの URL */
+export function problemUrl(contestId: string, problemId: string): string {
+  return `https://atcoder.jp/contests/${encodeURIComponent(contestId)}/tasks/${encodeURIComponent(problemId)}`;
+}
+
+/** 未同期の問題を手入力で登録するときの記号。最後の `_` より後ろを大文字にする（`abc999_d` → `D`） */
+export function guessProblemIndex(problemId: string): string {
+  return problemId.slice(problemId.lastIndexOf("_") + 1).toUpperCase();
+}

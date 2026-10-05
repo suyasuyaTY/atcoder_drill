@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseProblemInput } from "../src/lib/problem-id";
+import { guessProblemIndex, parseProblemInput, problemUrl } from "../src/lib/problem-id";
 
 describe("parseProblemInput", () => {
   it.each([
@@ -77,5 +77,31 @@ describe("parseProblemInput", () => {
     "https://atcoder.jp.evil.example/contests/abc306",
   ])("解釈できない: %j", (input) => {
     expect(parseProblemInput(input)).toBeNull();
+  });
+});
+
+describe("guessProblemIndex（未同期の問題を手入力で登録するときの記号）", () => {
+  it.each([
+    ["abc999_d", "D"],
+    ["abc999_ex", "EX"],
+    ["typical90_a", "A"],
+    ["jsc2019_qual_a", "A"],
+    ["nounderscore", "NOUNDERSCORE"],
+  ])("%s → %s", (id, index) => {
+    expect(guessProblemIndex(id)).toBe(index);
+  });
+});
+
+describe("problemUrl", () => {
+  it("問題のページの URL", () => {
+    expect(problemUrl("abc306", "abc306_d")).toBe("https://atcoder.jp/contests/abc306/tasks/abc306_d");
+  });
+
+  it("parseProblemInput で読み戻せる", () => {
+    expect(parseProblemInput(problemUrl("DEGwer2023", "1202Contest_a"))).toEqual({
+      type: "problem",
+      contestId: "DEGwer2023",
+      problemId: "1202Contest_a",
+    });
   });
 });

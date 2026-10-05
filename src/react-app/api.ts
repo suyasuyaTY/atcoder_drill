@@ -5,7 +5,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { hc, type ClientResponse, type parseResponse } from "hono/client";
-import type { ErrorBody, LoginBody } from "../shared/schema";
+import type { ContestKind } from "../lib/contest";
+import type { ErrorBody, LoginBody, RegisterBody } from "../shared/schema";
 import type { AppType } from "../worker/index";
 
 export const client = hc<AppType>(window.location.origin);
@@ -45,6 +46,11 @@ async function call<T extends ClientResponse<unknown>>(req: T | Promise<T>): Ret
 
 export const queryKeys = {
   me: ["me"] as const,
+  lookup: (q: string) => ["register", "lookup", q] as const,
+  lookupAll: ["register", "lookup"] as const,
+  regSession: ["register", "session"] as const,
+  tableAll: ["table"] as const,
+  table: (kind: ContestKind, page: number) => ["table", kind, page] as const,
 };
 
 export function useMe() {
@@ -59,5 +65,62 @@ export function useLogin() {
   return useMutation({
     mutationFn: (body: LoginBody) => call(client.api.login.$post({ json: body })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+  });
+}
+
+export function useLookup(q: string) {
+  return useQuery({
+    queryKey: queryKeys.lookup(q),
+    queryFn: () => call(client.api.register.lookup.$get({ query: { q } })),
+    enabled: q !== "",
+  });
+}
+
+export function useRegSession() {
+  return useQuery({
+    queryKey: queryKeys.regSession,
+    queryFn: () => call(client.api.register.session.$get()),
+  });
+}
+
+/** 登録・取り消しのあとに取り直すもの */
+function invalidateRegistration(queryClient: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.lookupAll }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.tableAll }),
+  ]);
+}
+
+export function useRegister() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: RegisterBody) => call(client.api.register.$post({ json: body })),
+    onSettled: () => invalidateRegistration(queryClient),
+  });
+}
+
+export function useUndoRegistration() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cardId: number) =>
+      call(client.api.register.items[":cardId"].$delete({ param: { cardId: String(cardId) } })),
+    onSettled: () => invalidateRegistration(queryClient),
+  });
+}
+
+export function useCloseRegSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => call(client.api.register.session.close.$post()),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.regSession }),
+  });
+}
+
+export function useTable(kind: ContestKind, page: number) {
+  return useQuery({
+    queryKey: queryKeys.table(kind, page),
+    queryFn: () => call(client.api.table.$get({ query: { kind, page: String(page) } })),
+    placeholderData: (prev) => prev,
   });
 }

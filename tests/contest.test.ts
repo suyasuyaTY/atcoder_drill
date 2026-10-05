@@ -7,6 +7,7 @@ import {
   isContestKind,
   isSessionKind,
   normalizeIndex,
+  tableColumns,
 } from "../src/lib/contest";
 
 describe("contestKind", () => {
@@ -62,5 +63,22 @@ describe("normalizeIndex", () => {
     ["1", "1"], // 英大文字がなければ元の値のまま
   ])("%s → %s", (index, norm) => {
     expect(normalizeIndex(index)).toBe(norm);
+  });
+});
+
+describe("tableColumns（問題表の列）", () => {
+  it("種類ごとの基本の列", () => {
+    expect(tableColumns("ABC", [])).toEqual(["A", "B", "C", "D", "E", "F", "G"]);
+    expect(tableColumns("ARC", [])).toEqual(["A", "B", "C", "D", "E", "F"]);
+    expect(tableColumns("AGC", [])).toEqual(["A", "B", "C", "D", "E", "F"]);
+  });
+
+  it("表示中のコンテストにある記号を足す（Ex/H、ARC の G）", () => {
+    expect(tableColumns("ABC", ["A", "H", "G"])).toEqual(["A", "B", "C", "D", "E", "F", "G", "H"]);
+    expect(tableColumns("ARC", ["G", "C"])).toEqual(["A", "B", "C", "D", "E", "F", "G"]);
+  });
+
+  it("その他は列を持たない", () => {
+    expect(tableColumns("OTHER", ["A", "B"])).toBeNull();
   });
 });

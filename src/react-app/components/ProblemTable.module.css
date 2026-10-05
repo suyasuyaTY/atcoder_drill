@@ -1,0 +1,123 @@
+.table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.contestCol {
+  width: 84px;
+}
+
+.table thead th {
+  height: 40px;
+  padding: 0 10px;
+  background: var(--surface-sub);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: left;
+}
+
+.contest {
+  padding: 0 10px;
+  border-bottom: 1px solid var(--line-row);
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td {
+  padding: 0;
+  border-left: 1px solid var(--line-row);
+  border-bottom: 1px solid var(--line-row);
+  vertical-align: top;
+}
+
+/* 1セル = 1問。F と F2 のように1列に2問あるときは縦に並ぶ */
+.cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: 56px;
+  padding: 0 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+.cell + .cell {
+  border-top: 1px solid var(--line-row);
+}
+.cell:hover {
+  color: var(--text);
+}
+.cell:hover .cellTitle {
+  text-decoration: underline;
+}
+.cell:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -2px;
+}
+
+.line1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cellTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.cellIndex {
+  margin-right: 4px;
+  color: var(--text-muted);
+}
+
+.line2 {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.unregistered {
+  background: var(--surface);
+}
+.streak0 {
+  background: var(--cell-streak0);
+}
+.streak1 {
+  background: var(--cell-streak1);
+}
+.graduated {
+  background: var(--cell-graduated);
+}
+.unlocked {
+  box-shadow: var(--cell-pool-ring);
+}
+
+/* その他: 行の中に問題を並べて折り返す */
+.other .contest {
+  vertical-align: top;
+  padding-top: 18px;
+}
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  padding: 0;
+  background: var(--line-row);
+  border-bottom: 1px solid var(--line-row);
+}
+.flow .cell {
+  width: 160px;
+}
+.flow .cell + .cell {
+  border-top: 0;
+}

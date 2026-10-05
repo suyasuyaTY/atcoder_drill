@@ -48,3 +48,20 @@ export function normalizeIndex(problemIndex: string): string {
   const m = /[A-Z]/.exec(problemIndex);
   return m ? m[0] : problemIndex;
 }
+
+/** 問題表の基本の列（SPEC §9）。表示中のコンテストにほかの記号があれば足す */
+const TABLE_BASE_COLUMNS: Readonly<Record<Exclude<ContestKind, "OTHER">, readonly string[]>> = {
+  ABC: ["A", "B", "C", "D", "E", "F", "G"],
+  ARC: ["A", "B", "C", "D", "E", "F"],
+  AGC: ["A", "B", "C", "D", "E", "F"],
+};
+
+/**
+ * 問題表の列（index_norm）。OTHER は記号がコンテストごとにばらばらなので列を持たない（null）。
+ * 同じ列に複数の問題が入ることがある（`F` と `F2`）。
+ */
+export function tableColumns(kind: ContestKind, indexNorms: readonly string[]): string[] | null {
+  if (kind === "OTHER") return null;
+  const cols = new Set([...TABLE_BASE_COLUMNS[kind], ...indexNorms]);
+  return [...cols].sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
+}

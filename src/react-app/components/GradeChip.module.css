@@ -1,0 +1,22 @@
+.chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.failed {
+  background: var(--grade-failed-bg);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.hard {
+  background: var(--grade-hard-bg);
+  color: var(--text);
+}
+.easy {
+  background: var(--grade-easy-bg);
+  color: var(--surface);
+}
