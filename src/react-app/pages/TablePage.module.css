@@ -20,7 +20,10 @@
 
 .tab {
   flex: none;
-  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
   border-radius: var(--r-pill);
   color: var(--text-muted);
   font-weight: 700;
@@ -76,7 +79,7 @@
   box-shadow: var(--cell-pool-ring);
 }
 
-.panel {
+.scroll {
   overflow-x: auto;
 }
 
@@ -87,8 +90,10 @@
 
 .pager {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 24px;
+  min-height: 40px;
   margin-top: 16px;
 }
 

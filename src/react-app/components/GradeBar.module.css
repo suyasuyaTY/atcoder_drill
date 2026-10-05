@@ -83,3 +83,23 @@
 .hard .sub {
   color: var(--text);
 }
+
+/* 720px 以下: セッション画面の申告ボタンは縦1列に並べる（DESIGN §7） */
+@media (max-width: 720px) {
+  .large {
+    flex-direction: column;
+    height: auto;
+  }
+  .large .button {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 16px;
+    border-left: 0;
+    border-top: 1px solid var(--line-strong);
+  }
+  .large .button:first-child {
+    border-top: 0;
+  }
+}

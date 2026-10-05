@@ -1,4 +1,5 @@
 import { formatJstDate } from "../../lib/format";
+import { useScrollToEnd } from "../hooks/useScrollToEnd";
 import styles from "./Grass.module.css";
 
 interface Cell {
@@ -19,6 +20,7 @@ function monthLabel(week: (Cell | null)[], i: number): string {
 
 /** 取り組みの記録（DESIGN §5 Grass）。列が週（日曜始まり）、行が曜日。数字は title にも書く */
 export function Grass({ weeks, total }: { weeks: (Cell | null)[][]; total: number }) {
+  const scrollRef = useScrollToEnd<HTMLDivElement>([weeks.length]);
   return (
     <section className={`panel ${styles.panel}`} aria-labelledby="grass-heading">
       <div className={styles.head}>
@@ -27,7 +29,7 @@ export function Grass({ weeks, total }: { weeks: (Cell | null)[][]; total: numbe
           1年で<span className={styles.totalNum}>{total}</span>回
         </p>
       </div>
-      <div className={styles.scroll}>
+      <div className={styles.scroll} ref={scrollRef}>
         <div className={styles.grid}>
           <div className={styles.weekdays} aria-hidden="true">
             <span />

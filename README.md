@@ -1,90 +1,44 @@
-# React + Vite + Hono + Cloudflare Workers
+# AtCoder 復習ドリル
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/vite-react-template)
+AtCoder の問題を間隔をあけて解き直すための、個人用の復習ドリルです。登録した問題を 30日後・90日後に出し直し、自力で余裕を持って AC できた状態が2回続いたら「卒業」にします。登録していない問題も、プロフィールで選んだ範囲から「初見」として混ぜて出します。
 
-This template provides a minimal setup for building a React application with TypeScript and Vite, designed to run on Cloudflare Workers. It features hot module replacement, ESLint integration, and the flexibility of Workers deployments.
+- 申告は自己申告の3段階（WA 解けず / AC 苦戦 / AC 余裕）
+- 1回3問。初見を多めに出し、残りを解禁中の復習から、解禁からの日数が長いものほど出やすく引く
+- 問題表（AtCoder Problems の Table のような一覧）、直近30日のグラフ、取り組みの記録（草）
 
-![React + TypeScript + Vite + Cloudflare Workers](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/fc7b4b62-442b-4769-641b-ad4422d74300/public)
+difficulty は [AtCoder Problems](https://kenkoooo.com/atcoder/) の推定値を使っています。
 
-<!-- dash-content-start -->
+## 構成
 
-🚀 Supercharge your web development with this powerful stack:
+React（Vite）の SPA と Hono の JSON API を、1つの Cloudflare Worker から配信します。データは Cloudflare D1 に置きます。問題データは GitHub Actions で週1回同期します。
 
-- [**React**](https://react.dev/) - A modern UI library for building interactive interfaces
-- [**Vite**](https://vite.dev/) - Lightning-fast build tooling and development server
-- [**Hono**](https://hono.dev/) - Ultralight, modern backend framework
-- [**Cloudflare Workers**](https://developers.cloudflare.com/workers/) - Edge computing platform for global deployment
+| ファイル | 内容 |
+|---|---|
+| [docs/SPEC.md](docs/SPEC.md) | 挙動の仕様（スケジュール、抽選、登録、問題表、DB、API、認証） |
+| [docs/DESIGN.md](docs/DESIGN.md) | 見た目（トークン、コンポーネント、画面ごとの状態） |
+| [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md) | インフラの構成、環境変数、デプロイ手順 |
+| [docs/SETUP.md](docs/SETUP.md) | 開発環境のセットアップ |
+| [AGENTS.md](AGENTS.md) | 実装の約束ごと |
 
-### ✨ Key Features
+## ローカルで動かす
 
-- 🔥 Hot Module Replacement (HMR) for rapid development
-- 📦 TypeScript support out of the box
-- 🛠️ ESLint configuration included
-- ⚡ Zero-config deployment to Cloudflare's global network
-- 🎯 API routes with Hono's elegant routing
-- 🔄 Full-stack development setup
-- 🔎 Built-in Observability to monitor your Worker
+Node.js 22 以上が要ります。
 
-Get started in minutes with local development or deploy directly via the Cloudflare dashboard. Perfect for building modern, performant web applications at the edge.
-
-<!-- dash-content-end -->
-
-## Getting Started
-
-To start a new project with this template, run:
-
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/vite-react-template
-```
-
-A live deployment of this template is available at:
-[https://react-vite-template.templates.workers.dev](https://react-vite-template.templates.workers.dev)
-
-## Development
-
-Install dependencies:
-
-```bash
+```sh
 npm install
-```
-
-Start the development server with:
-
-```bash
+printf 'AUTH_MODE=none\nDEBUG_TOOLS=1\n' > .dev.vars   # ローカル開発用（コミットしない）
+npm run db:migrate:local
+npm run sync:problems -- --local                        # 問題データを取得してローカルの D1 に入れる
 npm run dev
 ```
 
-Your application will be available at [http://localhost:5173](http://localhost:5173).
+`/debug` から、時計をずらしたりサンプルデータを入れたりできます（`DEBUG_TOOLS=1` のときだけ）。
 
-## Production
-
-Build your project for production:
-
-```bash
+```sh
+npm test            # Vitest（src/lib の純粋関数と src/shared のスキーマ）
+npm run typecheck
 npm run build
+npm run lint
 ```
 
-Preview your build locally:
-
-```bash
-npm run preview
-```
-
-Deploy your project to Cloudflare Workers:
-
-```bash
-npm run build && npm run deploy
-```
-
-Monitor your workers:
-
-```bash
-npx wrangler tail
-```
-
-## Additional Resources
-
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-- [Vite Documentation](https://vitejs.dev/guide/)
-- [React Documentation](https://reactjs.org/)
-- [Hono Documentation](https://hono.dev/)
+デプロイの手順は [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md) §7 にあります。

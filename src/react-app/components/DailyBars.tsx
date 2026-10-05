@@ -1,5 +1,6 @@
 import { DIFFICULTY_BANDS, DIFFICULTY_SOURCE, type DifficultyBand } from "../../lib/difficulty";
 import { formatJstDate } from "../../lib/format";
+import { useScrollToEnd } from "../hooks/useScrollToEnd";
 import styles from "./DailyBars.module.css";
 
 const HEIGHT = 150;
@@ -24,6 +25,7 @@ const dayLabel = (date: string) => formatJstDate(`${date}T00:00:00+09:00`);
 /** 直近30日に自力で解いた問題（DESIGN §5 DailyBars）。1日1本、1問1ブロックで易しい色帯から積む */
 export function DailyBars({ days }: { days: { date: string; blocks: DifficultyBand[] }[] }) {
   const total = days.reduce((s, d) => s + d.blocks.length, 0);
+  const scrollRef = useScrollToEnd<HTMLDivElement>([days.length]);
   return (
     <section className={`panel ${styles.panel}`} aria-labelledby="daily-heading">
       <div className={styles.head}>
@@ -32,7 +34,7 @@ export function DailyBars({ days }: { days: { date: string; blocks: DifficultyBa
           <span className={styles.totalNum}>{total}</span>問
         </p>
       </div>
-      <div className={styles.scroll}>
+      <div className={styles.scroll} ref={scrollRef}>
         <div className={styles.chart}>
           {days.map((d, i) => {
             const n = d.blocks.length;

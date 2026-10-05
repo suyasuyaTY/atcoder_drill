@@ -61,8 +61,11 @@ export function TablePage() {
           </p>
         </section>
       ) : (
-        <section className={`panel ${styles.panel}`} aria-busy={table.isPlaceholderData}>
-          <ProblemTable kind={kind} columns={table.data.columns} rows={table.data.rows} />
+        <section className="panel" aria-busy={table.isPlaceholderData}>
+          {/* 表はこの囲いの中だけ横にスクロールする（DESIGN §7）。コンテストの列は左に残る */}
+          <div className={styles.scroll}>
+            <ProblemTable kind={kind} columns={table.data.columns} rows={table.data.rows} />
+          </div>
         </section>
       )}
 

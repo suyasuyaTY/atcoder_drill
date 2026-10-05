@@ -12,6 +12,9 @@
 
 .link,
 .link:hover {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
   color: var(--surface);
 }
 

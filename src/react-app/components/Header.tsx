@@ -41,7 +41,7 @@ export function Header({ atcoderUserId }: { atcoderUserId: string | null }) {
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
         </svg>
-        {atcoderUserId ?? "プロフィール"}
+        <span className={styles.meName}>{atcoderUserId ?? "プロフィール"}</span>
       </NavLink>
     </header>
   );
