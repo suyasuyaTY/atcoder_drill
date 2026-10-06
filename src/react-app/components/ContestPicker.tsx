@@ -1,7 +1,9 @@
+import { XIcon } from "lucide-react";
 import { useId, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useContestSearch } from "../api";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
-import styles from "./ContestPicker.module.css";
 
 export interface PickedContest {
   id: string;
@@ -24,51 +26,65 @@ export function ContestPicker({ value, onChange }: { value: PickedContest[]; onC
     onChange(selected.has(c.id) ? value.filter((v) => v.id !== c.id) : [...value, c]);
 
   return (
-    <div className={styles.picker}>
+    <div className="flex flex-col gap-2">
       {value.length > 0 ? (
-        <ul className={styles.pills} aria-label="選んだコンテスト">
+        <ul className="flex flex-wrap gap-2" aria-label="選んだコンテスト">
           {value.map((c) => (
-            <li key={c.id} className={styles.pill} title={c.title}>
+            <li
+              key={c.id}
+              title={c.title}
+              className="inline-flex items-center gap-1 rounded-full bg-primary py-1 pr-1 pl-3 text-[13px] font-bold text-surface"
+            >
               {c.id}
-              <button type="button" className={styles.remove} aria-label={`${c.id} を外す`} onClick={() => toggle(c)}>
-                ×
+              <button
+                type="button"
+                aria-label={`${c.id} を外す`}
+                onClick={() => toggle(c)}
+                className="inline-flex size-6 items-center justify-center rounded-full hover:bg-ink-muted"
+              >
+                <XIcon className="size-3.5" aria-hidden="true" />
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="muted">まだ選んでいません。</p>
+        <p className="text-ink-muted">まだ選んでいません。</p>
       )}
 
-      <label htmlFor={inputId} className={styles.label}>
+      <Label htmlFor={inputId} className="mt-2 font-bold">
         コンテストを検索（ID か名前）
-      </label>
-      <input
+      </Label>
+      <Input
         id={inputId}
         type="search"
-        className={styles.input}
         placeholder="typical90、dp、PAST など"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
 
       {q !== "" && (
-        <div className={styles.results} aria-busy={search.isFetching}>
+        <div className="max-h-80 overflow-y-auto rounded-lg border border-line" aria-busy={search.isFetching}>
           {search.isError ? (
-            <p className={styles.error}>{search.error.message}</p>
+            <p className="px-4 py-3 text-danger">{search.error.message}</p>
           ) : search.data && search.data.contests.length === 0 ? (
-            <p className="muted">見つかりません。</p>
+            <p className="px-4 py-3 text-ink-muted">見つかりません。</p>
           ) : (
-            <ul className={styles.list}>
+            <ul>
               {search.data?.contests.map((c) => {
                 const id = `${inputId}-${c.id}`;
                 return (
-                  <li key={c.id}>
-                    <input id={id} type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c)} />
-                    <label htmlFor={id} className={styles.result}>
-                      <span className={styles.id}>{c.id}</span>
-                      <span className={styles.title}>{c.title}</span>
-                      <span className="muted">{c.problemCount}問</span>
+                  <li key={c.id} className="flex items-center gap-2.5 border-line-row px-4 not-first:border-t">
+                    <input
+                      id={id}
+                      type="checkbox"
+                      className="size-4 accent-primary"
+                      checked={selected.has(c.id)}
+                      onChange={() => toggle(c)}
+                    />
+                    <label htmlFor={id} className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3">
+                      <span className="shrink-0 font-bold">{c.id}</span>
+                      <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                      <span className="text-ink-muted">{c.problemCount}問</span>
                     </label>
                   </li>
                 );

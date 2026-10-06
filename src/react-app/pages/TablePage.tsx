@@ -1,20 +1,22 @@
 import { Link, useSearchParams } from "react-router";
 import { CONTEST_KINDS, KIND_LABELS, isContestKind, type ContestKind } from "../../lib/contest";
 import { DIFFICULTY_SOURCE } from "../../lib/difficulty";
+import { cn } from "@/lib/utils";
 import { useTable } from "../api";
+import { Page, Panel, PanelSkeleton } from "../components/Layout";
 import { Notice } from "../components/Notice";
+import { Pagination } from "../components/Pagination";
 import { ProblemTable } from "../components/ProblemTable";
 import { usePageTitle } from "../hooks/usePageTitle";
-import styles from "./TablePage.module.css";
 
 const LEGEND = [
-  { cls: "fresh", label: "未登録・初見に出る" },
-  { cls: "off", label: "未登録・出ない" },
-  { cls: "streak0", label: "streak 0" },
-  { cls: "streak1", label: "streak 1" },
-  { cls: "graduated", label: "卒業" },
-  { cls: "unlocked", label: "解禁中" },
-] as const;
+  { swatch: "bg-surface", label: "未登録・初見に出る" },
+  { swatch: "bg-cell-off", label: "未登録・出ない" },
+  { swatch: "bg-cell-streak0", label: "streak 0" },
+  { swatch: "bg-cell-streak1", label: "streak 1" },
+  { swatch: "bg-cell-graduated", label: "卒業" },
+  { swatch: "bg-surface shadow-pool", label: "解禁中" },
+];
 
 /** 問題表（SPEC §9、DESIGN §4）。種類とページは ?kind=&page= に持たせる */
 export function TablePage() {
@@ -28,20 +30,29 @@ export function TablePage() {
   const href = (k: ContestKind, p: number) => `/table?kind=${k}&page=${p}`;
 
   return (
-    <main className="page page-table">
+    <Page width="table">
       <h1>問題表</h1>
-      <div className={styles.toolbar}>
-        <nav className={styles.tabs} aria-label="コンテストの種類">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        {/* 種類のタブ（DESIGN §4）。--chip-bg の地に白いピルを乗せたセグメント型 */}
+        <nav className="inline-flex gap-1 overflow-x-auto rounded-full bg-chip p-1 [scrollbar-width:none]" aria-label="コンテストの種類">
           {CONTEST_KINDS.map((k) => (
-            <Link key={k} to={href(k, 1)} className={styles.tab} aria-current={k === kind ? "page" : undefined}>
+            <Link
+              key={k}
+              to={href(k, 1)}
+              aria-current={k === kind ? "page" : undefined}
+              className={cn(
+                "inline-flex min-h-10 shrink-0 items-center rounded-full px-4 font-bold no-underline",
+                k === kind ? "bg-surface text-ink hover:text-ink" : "text-ink-muted hover:text-ink",
+              )}
+            >
               {KIND_LABELS[k]}
             </Link>
           ))}
         </nav>
-        <ul className={styles.legend} aria-label="凡例">
+        <ul className="flex flex-wrap gap-3 text-xs text-ink-muted" aria-label="凡例">
           {LEGEND.map((l) => (
-            <li key={l.cls}>
-              <span className={`${styles.swatch} ${styles[l.cls]}`} aria-hidden="true" />
+            <li key={l.label} className="inline-flex items-center gap-1.5">
+              <span className={cn("size-3.5 rounded-[3px] border border-line", l.swatch)} aria-hidden="true" />
               {l.label}
             </li>
           ))}
@@ -51,41 +62,29 @@ export function TablePage() {
       {table.isError ? (
         <Notice role="alert">{table.error.message}</Notice>
       ) : table.isPending ? (
-        <div className={`panel ${styles.skeleton}`} aria-busy="true" />
+        <PanelSkeleton className="h-[480px]" />
       ) : table.data.rows.length === 0 ? (
-        <section className="panel">
-          <p className="muted">
+        <Panel>
+          <p className="text-ink-muted">
             {kind === "OTHER"
               ? "その他のコンテストは、プロフィールで選んだコンテストと、登録した問題があるコンテストだけを表示します。"
               : "表示するコンテストがありません。問題データを同期してください。"}
           </p>
-        </section>
+        </Panel>
       ) : (
-        <section className="panel" aria-busy={table.isPlaceholderData}>
+        <Panel aria-busy={table.isPlaceholderData}>
           {/* 表はこの囲いの中だけ横にスクロールする（DESIGN §7）。コンテストの列は左に残る */}
-          <div className={styles.scroll}>
+          <div className="overflow-x-auto">
             <ProblemTable kind={kind} columns={table.data.columns} rows={table.data.rows} />
           </div>
-        </section>
+        </Panel>
       )}
 
-      {table.data && (
-        <nav className={styles.pager} aria-label="ページ">
-          {page > 1 ? <Link to={href(kind, page - 1)}>新しい 20件</Link> : <span className="muted">新しい 20件</span>}
-          <span className="muted">
-            {page} / {table.data.totalPages}
-          </span>
-          {page < table.data.totalPages ? (
-            <Link to={href(kind, page + 1)}>古い 20件</Link>
-          ) : (
-            <span className="muted">古い 20件</span>
-          )}
-        </nav>
-      )}
+      {table.data && <Pagination page={page} total={table.data.totalPages} href={(p) => href(kind, p)} />}
 
-      <p className={styles.note}>
+      <p className="mt-4 text-xs text-ink-muted">
         difficulty は {DIFFICULTY_SOURCE}です。登録した問題は、プロフィールの設定に関係なく復習に出ます。
       </p>
-    </main>
+    </Page>
   );
 }

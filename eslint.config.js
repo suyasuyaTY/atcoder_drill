@@ -25,4 +25,6 @@ export default tseslint.config(
 			],
 		},
 	},
+	// shadcn/ui の部品は shadcn の書き方のまま（buttonVariants などを一緒に export する）
+	{ files: ["src/react-app/components/ui/**"], rules: { "react-refresh/only-export-components": "off" } },
 );

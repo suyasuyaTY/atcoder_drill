@@ -1,5 +1,10 @@
 {
 	"files": [],
+	// shadcn の CLI はここの paths を読む。実際の型チェックは tsconfig.app.json
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": { "@/*": ["./src/react-app/*"] }
+	},
 	"references": [
 		{ "path": "./tsconfig.app.json" },
 		{ "path": "./tsconfig.node.json" },

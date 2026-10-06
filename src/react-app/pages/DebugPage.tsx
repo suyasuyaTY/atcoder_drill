@@ -2,9 +2,11 @@ import { useId, useState, type FormEvent } from "react";
 import { useDebugClock, useDebugClockReset, useDebugSample, useDebugUnlock, useMe } from "../api";
 import { Button } from "../components/Button";
 import { Notice } from "../components/Notice";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Page, Panel } from "../components/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { NotFoundPage } from "./NotFoundPage";
-import styles from "./DebugPage.module.css";
 
 /** デバッグツール（SPEC §13）。/api/me が debugTools: true のときだけ出す */
 export function DebugPage() {
@@ -12,6 +14,8 @@ export function DebugPage() {
   if (!me.data?.debugTools) return <NotFoundPage />;
   return <DebugTools offsetDays={me.data.clockOffsetDays} />;
 }
+
+const ROW = "flex flex-wrap items-center gap-3";
 
 const signed = (n: number) => `${n < 0 ? "−" : "+"}${Math.abs(n)}日`;
 
@@ -39,22 +43,24 @@ function DebugTools({ offsetDays }: { offsetDays: number }) {
   };
 
   return (
-    <main className="page page-narrow">
-      <h1>デバッグツール</h1>
-      <p className="muted">DEBUG_TOOLS=1 のときだけ動きます。本番には出ません。</p>
+    <Page width="narrow" className="flex flex-col gap-4">
+      <div>
+        <h1 className="mb-1">デバッグツール</h1>
+        <p className="text-ink-muted">DEBUG_TOOLS=1 のときだけ動きます。本番には出ません。</p>
+      </div>
 
-      <section className={`panel ${styles.section}`} aria-labelledby="debug-clock">
+      <Panel aria-labelledby="debug-clock" className="flex flex-col gap-3">
         <h2 id="debug-clock">時計</h2>
         <p>
           いまのずれ: <strong>{signed(offsetDays)}</strong>
         </p>
-        <form className={styles.row} onSubmit={shift}>
-          <label htmlFor={daysId}>ずらす日数（マイナスで戻す）</label>
-          <input
+        <form className={ROW} onSubmit={shift}>
+          <Label htmlFor={daysId}>ずらす日数（マイナスで戻す）</Label>
+          <Input
             id={daysId}
             type="number"
             step={1}
-            className={styles.input}
+            className="w-40"
             value={days}
             onChange={(e) => setDays(e.target.value)}
           />
@@ -65,16 +71,16 @@ function DebugTools({ offsetDays }: { offsetDays: number }) {
             0 に戻す
           </Button>
         </form>
-        {(clock.error ?? reset.error) && <p className={styles.error}>{(clock.error ?? reset.error)!.message}</p>}
-      </section>
+        {(clock.error ?? reset.error) && <p className="text-danger">{(clock.error ?? reset.error)!.message}</p>}
+      </Panel>
 
-      <section className={`panel ${styles.section}`} aria-labelledby="debug-unlock">
+      <Panel aria-labelledby="debug-unlock" className="flex flex-col gap-3">
         <h2 id="debug-unlock">カードを今すぐ解禁する</h2>
-        <form className={styles.row} onSubmit={doUnlock}>
-          <label htmlFor={targetId}>カード ID か問題 ID</label>
-          <input
+        <form className={ROW} onSubmit={doUnlock}>
+          <Label htmlFor={targetId}>カード ID か問題 ID</Label>
+          <Input
             id={targetId}
-            className={styles.input}
+            className="w-40"
             placeholder="abc306_d"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -83,13 +89,13 @@ function DebugTools({ offsetDays }: { offsetDays: number }) {
             解禁する
           </Button>
         </form>
-        {unlock.isError && <p className={styles.error}>{unlock.error.message}</p>}
+        {unlock.isError && <p className="text-danger">{unlock.error.message}</p>}
         {unlock.isSuccess && <Notice>解禁しました。</Notice>}
-      </section>
+      </Panel>
 
-      <section className={`panel ${styles.section}`} aria-labelledby="debug-sample">
+      <Panel aria-labelledby="debug-sample" className="flex flex-col gap-3">
         <h2 id="debug-sample">サンプルデータ</h2>
-        <p className="muted">
+        <p className="text-ink-muted">
           ローカルの D1 に、解禁中・待機中・卒業のカードを12枚入れます（同期した問題データから選びます）。
         </p>
         <div>
@@ -97,9 +103,9 @@ function DebugTools({ offsetDays }: { offsetDays: number }) {
             サンプルデータを入れる
           </Button>
         </div>
-        {sample.isError && <p className={styles.error}>{sample.error.message}</p>}
+        {sample.isError && <p className="text-danger">{sample.error.message}</p>}
         {sample.isSuccess && <Notice>{sample.data.inserted}枚のカードを入れました。</Notice>}
-      </section>
-    </main>
+      </Panel>
+    </Page>
   );
 }

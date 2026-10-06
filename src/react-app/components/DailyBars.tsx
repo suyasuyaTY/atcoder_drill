@@ -1,7 +1,9 @@
 import { DIFFICULTY_BANDS, DIFFICULTY_SOURCE, type DifficultyBand } from "../../lib/difficulty";
 import { formatJstDate } from "../../lib/format";
+import { cn } from "@/lib/utils";
 import { useScrollToEnd } from "../hooks/useScrollToEnd";
-import styles from "./DailyBars.module.css";
+import { BAND_BG } from "../bands";
+import { Panel } from "./Layout";
 
 const HEIGHT = 150;
 const BLOCK = 24;
@@ -27,41 +29,51 @@ export function DailyBars({ days }: { days: { date: string; blocks: DifficultyBa
   const total = days.reduce((s, d) => s + d.blocks.length, 0);
   const scrollRef = useScrollToEnd<HTMLDivElement>([days.length]);
   return (
-    <section className={`panel ${styles.panel}`} aria-labelledby="daily-heading">
-      <div className={styles.head}>
+    <Panel aria-labelledby="daily-heading" className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-4">
         <h2 id="daily-heading">直近30日に自力で解いた問題</h2>
-        <p className={styles.total}>
-          <span className={styles.totalNum}>{total}</span>問
+        <p className="text-ink-muted">
+          <span className="mr-1 text-[26px] font-black text-ink">{total}</span>問
         </p>
       </div>
-      <div className={styles.scroll} ref={scrollRef}>
-        <div className={styles.chart}>
+      {/* グラフはこの面の中だけ横にスクロールし、最初は今日（右端）を見せる（DESIGN §7） */}
+      <div className="overflow-x-auto" ref={scrollRef}>
+        <div className="flex w-max gap-[9px]">
           {days.map((d, i) => {
             const n = d.blocks.length;
             const h = n > MAX_FULL_BLOCKS ? HEIGHT / n - GAP : BLOCK;
             const label = `${dayLabel(d.date)}: ${n}問`;
             return (
-              <div key={d.date} className={styles.day}>
-                <div className={styles.bar} title={label} role="img" aria-label={label}>
+              <div key={d.date} className="flex w-6 flex-col items-center gap-1">
+                <div
+                  title={label}
+                  role="img"
+                  aria-label={label}
+                  className="flex h-[150px] w-6 flex-col-reverse gap-0.5 border-b border-line-strong"
+                >
                   {d.blocks.map((band, j) => (
-                    <span key={j} className={`${styles.block} ${styles[band]}`} style={{ height: h }} />
+                    <span key={j} className={cn("w-6 shrink-0 rounded-[3px]", BAND_BG[band])} style={{ height: h }} />
                   ))}
                 </div>
-                <span className={styles.date}>{(days.length - 1 - i) % 7 === 0 ? dayLabel(d.date) : ""}</span>
+                <span className="h-4 text-[11px] whitespace-nowrap text-ink-muted">
+                  {(days.length - 1 - i) % 7 === 0 ? dayLabel(d.date) : ""}
+                </span>
               </div>
             );
           })}
         </div>
       </div>
-      <ul className={styles.legend} aria-label="difficulty の色帯">
+      <ul className="flex flex-wrap gap-3 text-xs text-ink-muted" aria-label="difficulty の色帯">
         {DIFFICULTY_BANDS.map((b) => (
-          <li key={b.band}>
-            <span className={`${styles.swatch} ${styles[b.band]}`} aria-hidden="true" />
+          <li key={b.band} className="inline-flex items-center gap-1.5">
+            <span className={cn("size-2.5 rounded-[3px]", BAND_BG[b.band])} aria-hidden="true" />
             {BAND_LABELS[b.band]}
           </li>
         ))}
       </ul>
-      <p className={styles.note}>difficulty は {DIFFICULTY_SOURCE}です。登録・初見・復習で、AC（余裕・苦戦）と申告した問題を数えます。</p>
-    </section>
+      <p className="text-xs text-ink-muted">
+        difficulty は {DIFFICULTY_SOURCE}です。登録・初見・復習で、AC（余裕・苦戦）と申告した問題を数えます。
+      </p>
+    </Panel>
   );
 }

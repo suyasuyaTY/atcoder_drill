@@ -14,7 +14,24 @@
 
 ## 2. トークン
 
-`src/react-app/styles/tokens.css` にこのまま置き、`main.tsx` で読み込む。ほかの CSS からは変数だけを参照する。ここにない色は足さない。
+`src/react-app/styles/tokens.css` にこのまま置く。ここにない色は足さない。
+
+実装は Tailwind CSS と shadcn/ui（Base UI 版）で行う。`src/react-app/styles/index.css` が tokens.css を読み込み、次のように割り当てる（Tailwind 標準の色は消してある）。
+
+| Tailwind の名前 | トークン |
+|---|---|
+| `bg` / `surface` / `surface-sub` / `surface-done` / `chip` | `--bg` / `--surface` / `--surface-sub` / `--surface-done` / `--chip-bg` |
+| `ink` / `ink-muted` / `ink-faint`（文字） | `--text` / `--text-muted` / `--text-faint` |
+| `line` / `line-strong` / `line-row` | `--line` / `--line-strong` / `--line-row` |
+| `primary` / `link` / `link-hover` / `danger` | `--primary` / `--link` / `--link-hover` / `--danger` |
+| `grade-easy` / `grade-hard` / `grade-failed` | 申告の色 |
+| `fresh` / `fresh-ink` | 初見の対象ラベル |
+| `cell-off` / `cell-streak0` / `cell-streak1` / `cell-graduated`、影 `shadow-pool` | 問題表の状態 |
+| `grass-0`〜`grass-4`、`notice` / `notice-line`、`diff-gray`〜`diff-red` | 草・注意の帯・difficulty の色帯 |
+| 角丸 `rounded-sm` / `md` / `lg` / `xl` / `full` | `--r-s` / `--r-m` / `--r-l` / `--r-xl` / `--r-pill` |
+| shadcn の `background` / `foreground` / `border` / `input` / `ring` / `muted` など | 上のトークンに割り当てる（`index.css` の `:root`） |
+
+`md:` の境目は 720px（§7）。
 
 ```css
 :root {
@@ -117,7 +134,7 @@ Lato を先に指定するので、英数字は Lato、日本語は Noto Sans JP
 | コンポーネント | 仕様 |
 |---|---|
 | `Header` | 上記。選択中のナビは `--chip-bg` の地 + 太字 + `aria-current="page"`。右上の名前ピルは白地に `--line` の枠、プロフィール表示中は `--text` の枠 |
-| `Button` | `primary`（黒地・白文字）、`secondary`（白地・`--line-strong` の枠）、`outline`（白地・黒枠。「開始」「読み込む」）、`danger`（白地・`--danger` の枠と文字）。高さ 40〜52px |
+| `Button` | shadcn/ui の Button を DESIGN に合わせて手直ししたもの。`primary`（黒地・白文字）、`secondary`（白地・`--line-strong` の枠）、`outline`（白地・黒枠。「開始」「読み込む」）、`danger`（白地・`--danger` の枠と文字）。高さ 40〜52px |
 | `KindPicker` | 種類のボタン（ABC / ARC / AGC / その他 / すべて）。高さ 48px、角丸 12px、2行（1行目に種類名 14px / 700、2行目に「復習 N ・ 初見 M」11px）。選択中は黒地に白文字、他は白地に枠、両方0件は点線の枠で押せない。選択は URL のクエリ（`?kind=`）に持たせ、`<Link>` で切り替える |
 | `GradeBar` | 申告の部品。登録画面とセッション画面の両方で使う。横一列につながった3つのボタン「WA | AC | AC」。外枠は 1px の `--line-strong`、角丸 10〜12px、`overflow: hidden`、ボタンの間は 1px の縦線。各ボタンは2行で、1行目に「WA」「AC」（太字）、2行目に小さく「解けず」「苦戦」「余裕」。未選択は白地、選択中は WA = 黒地に白文字、AC 苦戦 = `--grade-hard-bg`、AC 余裕 = `--grade-easy-bg`。<br>props は `value: Grade | null`、`onChange`、`size: 'compact' | 'large'`、`hints?`（2行目の結果の文）。中身は3つの `<button>`（`aria-pressed` で選択状態を示す）。<br>登録画面（compact）: 幅 300px、高さ 44px。選択中のボタンをもう一度押すと `null`（= 登録しない）に戻る。<br>セッション画面（large）: 幅いっぱい、高さ 72px。押すと即座に申告を送信する（送信中は3つとも無効）。2行目に結果も書く（「解けず ・ 0 に戻る」「苦戦 ・ 3ヶ月後にまた」「余裕 ・ 卒業」。streak から計算する） |
 | `SourceTag` | セッションの各問題に付ける「復習」（`--chip-bg` の地）/「初見」（`--fresh-bg` の地、`--fresh-text`）。11px / 700、ピル |
@@ -130,6 +147,7 @@ Lato を先に指定するので、英数字は Lato、日本語は Noto Sans JP
 | `DailyBars` | §5 |
 | `Grass` | §5 |
 | `ProblemTable` | §4 |
+| `Pagination` | §4 問題表 |
 | `Notice` | `--notice-bg` の地と `--notice-line` の枠、角丸 10px。API のエラーや「セッション完了」の表示に使う |
 | `ExternalLink` | 右に外部リンクのアイコン（線の SVG、13px）。`target="_blank" rel="noopener"` |
 
@@ -184,7 +202,7 @@ Lato を先に指定するので、英数字は Lato、日本語は Noto Sans JP
 
 ### 問題表（`/table`）
 
-- ページ送りは表の下に「新しい 20件 / 古い 20件」を置く。
+- ページ送りは表の下に、shadcn/ui の Pagination と同じ形で置く（`Pagination`）。「‹ 前へ  1 … 4 [5] 6 … 24  次へ ›」。最初・最後・いまのページの前後1つの番号を出し、間は「…」にする。いまのページは `--line-strong` の枠、ほかは枠なしで、ホバーで `--chip-bg` の地。端では前へ・次へを押せない。720px 以下では前へ・次へを矢印だけにする。1ページ目がいちばん新しいコンテスト。
 
 ### プロフィール（`/profile`）
 

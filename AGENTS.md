@@ -16,6 +16,7 @@ AtCoder の問題を間隔をあけて解き直すための、個人用の復習
 ## 技術スタック
 
 - フロント: React + Vite + React Router（画面遷移）+ TanStack Query（API のデータ取得・キャッシュ・更新）
+- スタイル: Tailwind CSS v4（`@tailwindcss/vite`）+ shadcn/ui（Base UI 版、style `base-nova`。部品は `src/react-app/components/ui/`）。アイコンは `lucide-react`
 - API: Hono（`/api/*`）+ zod（`@hono/zod-validator`）。クライアントは Hono RPC（`hc<AppType>`）で型付きで呼ぶ
 - 配信: 1つの Worker。SPA は静的アセット（`not_found_handling: "single-page-application"`）、`/api/*` だけ Worker を先に通す（`run_worker_first`）
 - 開発: `@cloudflare/vite-plugin`（`npm run dev` も workerd で動き、ローカルの D1 につながる）
@@ -23,7 +24,7 @@ AtCoder の問題を間隔をあけて解き直すための、個人用の復習
 - Cloudflare D1（binding `DB`）。ORM は使わず、`c.env.DB.prepare(...).bind(...)` で素の SQL を書く
 - `jose`（Access の JWT 検証）、`hono/csrf`、`hono/cookie`
 - テスト: Vitest（`src/lib/` の純粋関数と、`src/shared/` のスキーマが対象）
-- 入れないもの: 状態管理ライブラリ（Redux・Zustand など）、UI キット、CSS フレームワーク、グラフのライブラリ、フォームライブラリ
+- 入れないもの: 状態管理ライブラリ（Redux・Zustand など）、shadcn/ui 以外の UI キット、Tailwind 以外の CSS フレームワーク、グラフのライブラリ、フォームライブラリ
 
 ## コマンド
 
@@ -63,8 +64,11 @@ src/
     api.ts                hc<AppType> のクライアントと、TanStack Query のフック
     pages/                Home / Session / Register / Table / CardDetail / Profile / Login / Debug
     components/           DESIGN.md §3 のコンポーネント
+      ui/                 shadcn/ui の部品（button / pagination / input / label）。DESIGN に合わせて手直ししてある
+    lib/utils.ts          cn()（clsx + tailwind-merge。shadcn の標準）
+    bands.ts              difficulty の色帯 → Tailwind のクラス
     hooks/                usePageTitle など
-    styles/               tokens.css（DESIGN.md §2）と共通スタイル
+    styles/               index.css（Tailwind と shadcn のテーマ。tokens.css の色を割り当てる）と tokens.css（DESIGN.md §2）
   shared/                 サーバーとクライアントの両方で使う zod スキーマと型
   lib/                    純粋関数。D1・fetch・Hono・React・cloudflare:workers を import しない
     scheduler.ts          apply / register / draw / planSlots（実装済み）
@@ -112,7 +116,11 @@ tests/                    lib と shared のテスト
 15. サーバーのデータは TanStack Query で取得・更新する。申告や登録のあとは、関係するクエリを invalidate して取り直す。サーバーのデータをコンポーネントの state に写して持ち回らない。
 16. 画面の状態（選んだ種類・ページ・検索語）は URL のクエリに持たせる。
 17. localStorage・sessionStorage は使わない（タイマーは作らない。SPEC §15）。
-18. 色・フォント・角丸は `tokens.css` の変数だけを使う。新しい色を足さない。グラデーション、左端だけ太い線、絵文字、明朝体は使わない。スタイルは CSS Modules か共通 CSS で書き、インラインの style は動的な値（グラフの高さなど）だけにする。
+18. 色・フォント・角丸は `tokens.css` の変数だけを使う。新しい色を足さない。グラデーション、左端だけ太い線、絵文字、明朝体は使わない。
+    - スタイルは Tailwind のクラスで書く（CSS Modules は使わない）。色は `index.css` の `@theme` で定義した名前だけ（`bg-surface`、`text-ink-muted`、`bg-grade-easy` など）。Tailwind 標準の色（`red-500` など）は消してあるので使えない。`bg-[#fff]` のような任意の色も書かない。
+    - クラス名は省略せずに書く（`bg-diff-${band}` のように組み立てると Tailwind が見つけられない。対応表を作る。`bands.ts` を参照）。
+    - インラインの style は動的な値（グラフの高さなど）だけにする。
+    - shadcn の部品を足すときは `npx shadcn@latest add <name>` のあと、CLI が依存に足す `cn` パッケージ（無関係な npm パッケージ）を `npm uninstall cn` で消し、`import { cn } from "cn"` を `@/lib/utils` に直す。色と大きさは DESIGN に合わせて手直しする。
 19. グラフ（30日の棒・草）は、API が返した集計を React で div か SVG として描く。
 20. 画面の文言は日本語。申告の表示は SPEC §2.2 のとおり。difficulty を表示する画面には出典を書く。
 21. 操作できるものは `<button>`・`<a>`（React Router の `<Link>`）・`<input>` + `<label>` で作る。div に onClick を付けない。
@@ -126,7 +134,7 @@ tests/                    lib と shared のテスト
 
 ### 依存
 
-26. 依存パッケージを足す前に、ユーザーに確認する。入れてよいことになっているのは、テンプレートに入っていたものと `react-router`、`@tanstack/react-query`、`zod`、`@hono/zod-validator`、`jose`、`vitest`、`tsx` だけ。
+26. 依存パッケージを足す前に、ユーザーに確認する。入れてよいことになっているのは、テンプレートに入っていたものと `react-router`、`@tanstack/react-query`、`zod`、`@hono/zod-validator`、`jose`、`vitest`、`tsx`、`tailwindcss`、`@tailwindcss/vite`、`tw-animate-css`、shadcn/ui が使う `@base-ui/react`・`class-variance-authority`・`clsx`・`tailwind-merge`・`lucide-react` だけ。
 
 ## 作業の進め方
 

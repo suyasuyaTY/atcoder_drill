@@ -5,6 +5,8 @@ import { formatJstDate } from "../../lib/format";
 import { problemUrl } from "../../lib/problem-id";
 import type { Grade } from "../../lib/scheduler";
 import type { RegisterItem } from "../../shared/schema";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useCloseRegSession, useLookup, useRegister, useRegSession, useUndoRegistration } from "../api";
 import { Button } from "../components/Button";
 import { DifficultyDot } from "../components/DifficultyDot";
@@ -12,10 +14,16 @@ import { ExternalLink } from "../components/ExternalLink";
 import { FreshTag } from "../components/FreshTag";
 import { GradeBar } from "../components/GradeBar";
 import { GradeChip } from "../components/GradeChip";
+import { Page, Panel, PanelSkeleton } from "../components/Layout";
 import { Notice } from "../components/Notice";
 import { GRADE_CRITERION } from "../grades";
 import { usePageTitle } from "../hooks/usePageTitle";
-import styles from "./RegisterPage.module.css";
+
+/** 一覧の1行。720px 以下では申告を問題の下に回す */
+const ROW =
+  "flex min-h-[60px] items-center justify-between gap-4 border-line-row py-2 not-first:border-t max-md:flex-col max-md:items-stretch";
+const PROBLEM = "flex min-w-0 items-center gap-3";
+const INDEX = "min-w-6 shrink-0 text-[13px] font-bold text-ink-muted";
 
 /** 登録（SPEC §7、DESIGN §6 登録）。入力した URL は ?q= に持たせる */
 export function RegisterPage() {
@@ -24,12 +32,12 @@ export function RegisterPage() {
   const q = params.get("q") ?? "";
 
   return (
-    <main className="page page-wide">
-      <h1>登録</h1>
+    <Page width="wide" className="flex flex-col gap-4">
+      <h1 className="mb-1">登録</h1>
       <UrlForm key={`url:${q}`} initial={q} onSubmit={(next) => setParams(next ? { q: next } : {})} />
       {q !== "" && <LookupResult key={`lookup:${q}`} q={q} />}
       <CurrentRegistrations />
-    </main>
+    </Page>
   );
 }
 
@@ -41,25 +49,26 @@ function UrlForm({ initial, onSubmit }: { initial: string; onSubmit: (q: string)
     onSubmit(value.trim());
   };
   return (
-    <form className={`panel ${styles.urlForm}`} onSubmit={submit}>
-      <label htmlFor={id} className={styles.label}>
-        AtCoder の URL（コンテストのページ、または問題のページ）
-      </label>
-      <div className={styles.urlRow}>
-        <input
-          id={id}
-          type="text"
-          inputMode="url"
-          className={styles.input}
-          placeholder="https://atcoder.jp/contests/abc306"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <Button type="submit" variant="outline" disabled={value.trim() === ""}>
-          読み込む
-        </Button>
-      </div>
-    </form>
+    <Panel>
+      <form className="flex flex-col gap-2" onSubmit={submit}>
+        <Label htmlFor={id} className="font-bold leading-normal">
+          AtCoder の URL（コンテストのページ、または問題のページ）
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            id={id}
+            type="text"
+            inputMode="url"
+            placeholder="https://atcoder.jp/contests/abc306"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <Button type="submit" variant="outline" disabled={value.trim() === ""}>
+            読み込む
+          </Button>
+        </div>
+      </form>
+    </Panel>
   );
 }
 
@@ -72,10 +81,10 @@ function LookupResult({ q }: { q: string }) {
   const noteId = useId();
   const titleId = useId();
 
-  if (lookup.isPending) return <div className={`panel ${styles.skeleton}`} aria-busy="true" />;
+  if (lookup.isPending) return <PanelSkeleton className="h-40" />;
   if (lookup.isError) {
     return (
-      <p className={styles.error} role="alert">
+      <p className="text-danger" role="alert">
         {lookup.error.message}
       </p>
     );
@@ -105,7 +114,13 @@ function LookupResult({ q }: { q: string }) {
   const selected = Object.entries(grades);
   const extras = () => (note.trim() !== "" ? { note: note.trim() } : {});
   const items: RegisterItem[] = manual
-    ? selected.map(([problemId, grade]) => ({ problemId, grade, title: manualTitle.trim(), contestId: manual.contestId, ...extras() }))
+    ? selected.map(([problemId, grade]) => ({
+        problemId,
+        grade,
+        title: manualTitle.trim(),
+        contestId: manual.contestId,
+        ...extras(),
+      }))
     : selected.map(([problemId, grade]) => ({ problemId, grade, ...(single ? extras() : {}) }));
   const canSubmit = items.length > 0 && (manual === null || manualTitle.trim() !== "") && !reg.isPending;
 
@@ -121,19 +136,19 @@ function LookupResult({ q }: { q: string }) {
     );
 
   return (
-    <section className={`panel ${styles.result}`} aria-label="読み込んだ問題">
+    <Panel aria-label="読み込んだ問題" className="flex flex-col gap-4">
       {manual ? (
         <>
           <Notice>問題データが未同期です。タイトルを入力すると登録できます。</Notice>
-          <div className={styles.field}>
-            <label htmlFor={titleId} className={styles.label}>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={titleId} className="font-bold">
               タイトル（{manual.contestId} {manual.problemIndex}）
-            </label>
-            <input id={titleId} className={styles.input} value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} />
+            </Label>
+            <Input id={titleId} value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} />
           </div>
-          <div className={styles.row}>
-            <div className={styles.problem}>
-              <span className={styles.index}>{manual.problemIndex}</span>
+          <div className={ROW}>
+            <div className={PROBLEM}>
+              <span className={INDEX}>{manual.problemIndex}</span>
               <ExternalLink href={problemUrl(manual.contestId, manual.problemId)}>{manual.problemId}</ExternalLink>
             </div>
             <GradeBar
@@ -145,27 +160,27 @@ function LookupResult({ q }: { q: string }) {
         </>
       ) : (
         <>
-          <div className={styles.resultHead}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <h2>{contest ? contest.title : "問題"}</h2>
-            <span className={styles.source}>difficulty は {DIFFICULTY_SOURCE}</span>
+            <span className="text-xs text-ink-muted">difficulty は {DIFFICULTY_SOURCE}</span>
           </div>
-          <ul className={styles.list}>
+          <ul>
             {problems.map((p) => (
-              <li key={p.id} className={styles.row}>
-                <div className={styles.problem}>
-                  <span className={styles.index}>{p.problemIndex}</span>
-                  <ExternalLink href={problemUrl(p.contestId, p.id)} className={styles.title}>
+              <li key={p.id} className={ROW}>
+                <div className={PROBLEM}>
+                  <span className={INDEX}>{p.problemIndex}</span>
+                  <ExternalLink href={problemUrl(p.contestId, p.id)} className="truncate">
                     {p.title}
                   </ExternalLink>
                   <DifficultyDot value={p.difficulty} />
                   {p.freshTarget && <FreshTag />}
                 </div>
                 {p.cardId !== null ? (
-                  <span className={styles.registered}>
+                  <span className="shrink-0 text-[13px] text-ink-muted">
                     登録済み ・ <Link to={`/cards/${p.cardId}`}>カードを開く</Link>
                   </span>
                 ) : p.inSession ? (
-                  <span className={styles.registered}>
+                  <span className="shrink-0 text-[13px] text-ink-muted">
                     出題中 ・ <Link to="/session">セッションで申告する</Link>
                   </span>
                 ) : (
@@ -182,20 +197,18 @@ function LookupResult({ q }: { q: string }) {
       )}
 
       {(single || manual) && problems.every((p) => p.cardId === null && !p.inSession) && (
-        <div className={styles.extras}>
-          <div className={`${styles.field} ${styles.grow}`}>
-            <label htmlFor={noteId} className={styles.label}>
-              メモ（任意）
-            </label>
-            <input id={noteId} className={styles.input} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={noteId} className="font-bold">
+            メモ（任意）
+          </Label>
+          <Input id={noteId} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       )}
 
-      <p className={styles.criterion}>{GRADE_CRITERION}</p>
+      <p className="text-[13px] text-ink-muted">{GRADE_CRITERION}</p>
 
       {reg.isError && (
-        <p className={styles.error} role="alert">
+        <p className="text-danger" role="alert">
           {reg.error.message}
         </p>
       )}
@@ -207,15 +220,15 @@ function LookupResult({ q }: { q: string }) {
         </Notice>
       )}
 
-      <div className={styles.footer}>
-        <p className="muted">
+      <div className="flex items-center justify-between gap-4 border-t border-line pt-4 max-md:flex-col max-md:items-stretch">
+        <p className="text-[13px] text-ink-muted">
           何も選ばなかった問題は登録しません。登録した問題は、プロフィールの設定に関係なく復習に出ます。
         </p>
         <Button onClick={submit} disabled={!canSubmit}>
           {items.length}問を登録
         </Button>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -229,50 +242,45 @@ function CurrentRegistrations() {
   const { items } = session.data;
 
   return (
-    <section className={`panel ${styles.current}`} aria-labelledby="current-registrations">
-      <div className={styles.resultHead}>
+    <Panel aria-labelledby="current-registrations" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 id="current-registrations">今回の登録（{items.length}問）</h2>
         <Button variant="secondary" onClick={() => close.mutate()} disabled={close.isPending}>
           登録を終える
         </Button>
       </div>
       {undo.isError && (
-        <p className={styles.error} role="alert">
+        <p className="text-danger" role="alert">
           {undo.error.message}
         </p>
       )}
       {items.length === 0 ? (
-        <p className="muted">まだ登録していません。</p>
+        <p className="text-ink-muted">まだ登録していません。</p>
       ) : (
-        <ul className={styles.list}>
+        <ul>
           {items.map((i) => (
-            <li key={i.cardId} className={styles.row}>
-              <div className={styles.problem}>
-                <span className={styles.index}>
+            <li key={i.cardId} className={ROW}>
+              <div className={PROBLEM}>
+                <span className={INDEX}>
                   {i.contestId} {i.problemIndex}
                 </span>
-                <Link to={`/cards/${i.cardId}`} className={styles.title}>
+                <Link to={`/cards/${i.cardId}`} className="truncate">
                   {i.title}
                 </Link>
               </div>
-              <div className={styles.currentMeta}>
+              <div className="flex shrink-0 items-center gap-3 text-[13px]">
                 <GradeChip grade={i.grade} />
-                <span className="muted">{i.nextReviewAt ? `解禁 ${formatJstDate(i.nextReviewAt)}` : "卒業"}</span>
+                <span className="text-ink-muted">{i.nextReviewAt ? `解禁 ${formatJstDate(i.nextReviewAt)}` : "卒業"}</span>
                 {i.canUndo && (
-                  <button
-                    type="button"
-                    className={styles.linkButton}
-                    onClick={() => undo.mutate(i.cardId)}
-                    disabled={undo.isPending}
-                  >
+                  <Button variant="link" size="sm" className="px-1" onClick={() => undo.mutate(i.cardId)} disabled={undo.isPending}>
                     取り消す
-                  </button>
+                  </Button>
                 )}
               </div>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }

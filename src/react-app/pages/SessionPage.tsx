@@ -4,22 +4,30 @@ import { KIND_LABELS } from "../../lib/contest";
 import { formatJstDate, formatJstDateTime } from "../../lib/format";
 import { problemUrl } from "../../lib/problem-id";
 import type { Grade } from "../../lib/scheduler";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { useCurrentSession, useGrade } from "../api";
 import { Button } from "../components/Button";
 import { DifficultyDot } from "../components/DifficultyDot";
 import { ExternalLink } from "../components/ExternalLink";
 import { GradeBar } from "../components/GradeBar";
 import { GradeChip } from "../components/GradeChip";
+import { Page, PanelSkeleton } from "../components/Layout";
 import { Notice } from "../components/Notice";
 import { SourceTag } from "../components/SourceTag";
 import { StreakDots } from "../components/StreakDots";
 import { GRADE_CRITERION, gradeHints } from "../grades";
 import { usePageTitle } from "../hooks/usePageTitle";
 import type { CompletedSummary } from "./HomePage";
-import styles from "./SessionPage.module.css";
 
 type Session = NonNullable<NonNullable<ReturnType<typeof useCurrentSession>["data"]>["session"]>;
 type Item = Session["items"][number];
+
+/** 1問ぶんの枠（DESIGN §6 セッション） */
+const ITEM = "rounded-xl border border-line bg-surface";
+/** 未着手・申告済みの1行 */
+const ROW = "flex flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6";
 
 /** セッション（SPEC §8.4、DESIGN §6 セッション）。開いているセッションがなければホームへ */
 export function SessionPage() {
@@ -28,16 +36,16 @@ export function SessionPage() {
 
   if (current.isError) {
     return (
-      <main className="page page-narrow">
+      <Page width="narrow">
         <Notice role="alert">{current.error.message}</Notice>
-      </main>
+      </Page>
     );
   }
   if (current.isPending) {
     return (
-      <main className="page page-narrow">
-        <div className={`panel ${styles.skeleton}`} aria-busy="true" />
-      </main>
+      <Page width="narrow">
+        <PanelSkeleton className="h-80" />
+      </Page>
     );
   }
   if (!current.data.session) return <Navigate to="/" replace />;
@@ -61,7 +69,10 @@ function SessionView({ session }: { session: Session }) {
           setActive(null);
           if (!res.sessionClosed) return;
           // 3問とも申告したらホームへ戻し、内訳を1回だけ出す（表示用の集計）
-          const grades = [...session.items.filter((i) => i.position !== item.position).map((i) => i.result?.grade), res.result.grade];
+          const grades = [
+            ...session.items.filter((i) => i.position !== item.position).map((i) => i.result?.grade),
+            res.result.grade,
+          ];
           const completed: CompletedSummary = {
             easy: grades.filter((x) => x === "easy").length,
             hard: grades.filter((x) => x === "hard").length,
@@ -73,26 +84,26 @@ function SessionView({ session }: { session: Session }) {
     );
 
   return (
-    <main className="page page-narrow">
-      <header className={styles.head}>
+    <Page width="narrow">
+      <header className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h1>{KIND_LABELS[session.kind]} のセッション</h1>
-          <p className="muted">
+          <h1 className="mb-1">{KIND_LABELS[session.kind]} のセッション</h1>
+          <p className="text-ink-muted">
             {formatJstDateTime(session.drawnAt)} に抽選 ・ 初見 {fresh} ・ 復習 {session.items.length - fresh}
           </p>
         </div>
-        <p className={styles.progress} aria-label="進み具合">
+        <p className="text-[26px] font-black whitespace-nowrap" aria-label="進み具合">
           {graded} / {session.items.length}
         </p>
       </header>
 
       {grade.isError && (
-        <div className={styles.notice}>
+        <div className="mb-4">
           <Notice role="alert">{grade.error.message}</Notice>
         </div>
       )}
 
-      <ol className={styles.items}>
+      <ol className="flex flex-col gap-4">
         {session.items.map((item) => (
           <li key={item.position}>
             {item.result ? (
@@ -105,13 +116,13 @@ function SessionView({ session }: { session: Session }) {
           </li>
         ))}
       </ol>
-    </main>
+    </Page>
   );
 }
 
 function ProblemLabel({ item }: { item: Item }) {
   return (
-    <span className={styles.label}>
+    <span className="shrink-0 text-[13px] font-bold text-ink-muted">
       {item.contestId.toUpperCase()} {item.problemIndex}
     </span>
   );
@@ -120,14 +131,14 @@ function ProblemLabel({ item }: { item: Item }) {
 /** 未着手: 「開始」と「問題を開く」。問題を開くと挑戦中にする */
 function TodoItem({ item, onStart }: { item: Item; onStart: () => void }) {
   return (
-    <div className={`${styles.item} ${styles.todo}`}>
-      <div className={styles.titleRow}>
+    <div className={cn(ITEM, ROW)}>
+      <div className="flex min-w-0 items-center gap-2.5">
         <SourceTag source={item.source} />
         <ProblemLabel item={item} />
-        <span className={styles.title}>{item.title}</span>
+        <span className="min-w-0 truncate font-bold">{item.title}</span>
         <DifficultyDot value={item.difficulty} />
       </div>
-      <div className={styles.actions}>
+      <div className="flex shrink-0 items-center gap-4">
         <Button variant="outline" onClick={onStart}>
           開始
         </Button>
@@ -152,15 +163,19 @@ function ActiveItem({
   const [note, setNote] = useState("");
   const noteId = useId();
   return (
-    <div className={`${styles.item} ${styles.active}`}>
-      <div className={styles.titleRow}>
+    <div className={cn(ITEM, "flex flex-col gap-4 border-line-strong px-4 py-5 md:p-7")}>
+      <div className="flex items-center gap-2.5">
         <SourceTag source={item.source} />
         <ProblemLabel item={item} />
         <DifficultyDot value={item.difficulty} />
       </div>
-      <h2 className={styles.bigTitle}>{item.title}</h2>
-      <div className={styles.meta}>
-        {item.source === "fresh" ? <span className="muted">まだ登録していない問題</span> : <StreakDots streak={item.streak} />}
+      <h2 className="text-[26px] font-black">{item.title}</h2>
+      <div className="flex flex-wrap items-center gap-5">
+        {item.source === "fresh" ? (
+          <span className="text-ink-muted">まだ登録していない問題</span>
+        ) : (
+          <StreakDots streak={item.streak} />
+        )}
         <ExternalLink href={problemUrl(item.contestId, item.problemId)}>問題を開く</ExternalLink>
       </div>
       <GradeBar
@@ -171,12 +186,12 @@ function ActiveItem({
         disabled={pending}
         onChange={(g) => g && onSubmit(g, note)}
       />
-      <p className={styles.criterion}>{GRADE_CRITERION}</p>
-      <div className={styles.field}>
-        <label htmlFor={noteId} className={styles.fieldLabel}>
+      <p className="text-[13px] text-ink-muted">{GRADE_CRITERION}</p>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={noteId} className="font-bold">
           メモ（任意）
-        </label>
-        <input id={noteId} className={styles.input} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+        </Label>
+        <Input id={noteId} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
     </div>
   );
@@ -186,15 +201,15 @@ function ActiveItem({
 function DoneItem({ item }: { item: Item }) {
   const r = item.result!;
   return (
-    <div className={`${styles.item} ${styles.done}`}>
-      <div className={styles.titleRow}>
+    <div className={cn(ITEM, ROW, "bg-surface-done")}>
+      <div className="flex min-w-0 items-center gap-2.5">
         <SourceTag source={item.source} />
         <ProblemLabel item={item} />
-        <span className={styles.title}>{item.title}</span>
+        <span className="min-w-0 truncate font-bold">{item.title}</span>
       </div>
-      <div className={styles.actions}>
+      <div className="flex shrink-0 items-center gap-4">
         <GradeChip grade={r.grade} />
-        <span className="muted">{r.nextReviewAt ? `次は ${formatJstDate(r.nextReviewAt)}` : "卒業"}</span>
+        <span className="text-ink-muted">{r.nextReviewAt ? `次は ${formatJstDate(r.nextReviewAt)}` : "卒業"}</span>
       </div>
     </div>
   );

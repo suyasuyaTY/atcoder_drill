@@ -3,8 +3,10 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { ApiError, isUnauthorized, useLogin, useMe } from "../api";
 import { Button } from "../components/Button";
 import { Notice } from "../components/Notice";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Page, Panel } from "../components/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
-import styles from "./LoginPage.module.css";
 
 /** トークン入力（AUTH_MODE=token で未ログインのとき。SPEC §17） */
 export function LoginPage() {
@@ -36,44 +38,40 @@ export function LoginPage() {
   if (me.isError && me.error instanceof ApiError && me.error.code === "access_required") {
     return (
       <>
-        <header className={styles.header}>
-          <span className={styles.logo}>復習ドリル</span>
-        </header>
-        <main className="page page-profile">
+        <LoginHeader />
+        <Page width="profile">
           <h1>ログイン</h1>
-          <section className={`panel ${styles.form}`}>
+          <Panel className="flex flex-col gap-3">
             <p>Cloudflare Access のログインが切れています。ページを読み込み直すと、ログイン画面に移ります。</p>
             <div>
               <Button onClick={() => window.location.assign(from)}>読み込み直す</Button>
             </div>
-          </section>
-        </main>
+          </Panel>
+        </Page>
       </>
     );
   }
 
   return (
     <>
-      <header className={styles.header}>
-        <span className={styles.logo}>復習ドリル</span>
-      </header>
-      <main className="page page-profile">
+      <LoginHeader />
+      <Page width="profile">
         <h1>ログイン</h1>
-        <form className={`panel ${styles.form}`} onSubmit={onSubmit}>
-          <label htmlFor={inputId} className={styles.label}>
+        <Panel>
+          <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+          <Label htmlFor={inputId} className="font-bold">
             トークン
-          </label>
-          <input
+          </Label>
+          <Input
             id={inputId}
             type="password"
             autoComplete="current-password"
-            className={styles.input}
             value={token}
             onChange={(e) => setToken(e.target.value)}
             required
           />
           {login.isError && (
-            <p className={styles.error} role="alert">
+            <p className="text-danger" role="alert">
               {login.error.message}
             </p>
           )}
@@ -82,13 +80,23 @@ export function LoginPage() {
               ログイン
             </Button>
           </div>
-        </form>
+          </form>
+        </Panel>
         {otherError && (
-          <div className={styles.notice}>
+          <div className="mt-4">
             <Notice role="alert">{otherError.message}</Notice>
           </div>
         )}
-      </main>
+      </Page>
     </>
+  );
+}
+
+/** ログイン画面のヘッダー（ロゴだけ） */
+function LoginHeader() {
+  return (
+    <header className="flex h-[60px] items-center border-b border-line bg-surface px-4 md:px-10">
+      <span className="text-[17px] font-black">復習ドリル</span>
+    </header>
   );
 }

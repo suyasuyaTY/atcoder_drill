@@ -7,10 +7,10 @@ import { Button, LinkButton } from "../components/Button";
 import { DailyBars } from "../components/DailyBars";
 import { Grass } from "../components/Grass";
 import { KindPicker } from "../components/KindPicker";
+import { Page, Panel, PanelSkeleton } from "../components/Layout";
 import { Notice } from "../components/Notice";
 import { Stat } from "../components/Stat";
 import { usePageTitle } from "../hooks/usePageTitle";
-import styles from "./HomePage.module.css";
 
 /** セッション画面から戻るときに渡す、申告の内訳（SPEC §8.4） */
 export type CompletedSummary = { easy: number; hard: number; failed: number };
@@ -20,7 +20,7 @@ function readCompleted(state: unknown): CompletedSummary | null {
   return state.completed as CompletedSummary;
 }
 
-/** ホーム（SPEC §6.1、§8.3）。選んだ種類は ?kind= に持たせる。30日グラフと草はステップ8で足す */
+/** ホーム（SPEC §6.1、§8.3、§10）。選んだ種類は ?kind= に持たせる */
 export function HomePage() {
   usePageTitle(null);
   const [params] = useSearchParams();
@@ -46,10 +46,10 @@ export function HomePage() {
     });
 
   return (
-    <main className="page page-wide">
+    <Page width="wide">
       <h1>ホーム</h1>
       {completed && (
-        <div className={styles.notice}>
+        <div className="mb-4">
           <Notice>
             セッション完了: 余裕 {completed.easy} ・ 苦戦 {completed.hard} ・ 解けず {completed.failed}
           </Notice>
@@ -59,68 +59,64 @@ export function HomePage() {
       {home.isError ? (
         <Notice role="alert">{home.error.message}</Notice>
       ) : home.isPending ? (
-        <div className={`panel ${styles.skeleton}`} aria-busy="true" />
+        <PanelSkeleton className="h-[220px]" />
       ) : (
-        <>
-          <section className={`panel ${styles.draw}`} aria-label="出題">
+        <div className="flex flex-col gap-4">
+          <Panel aria-label="出題" className="flex flex-wrap justify-between gap-8">
             {home.data.openSession ? (
-              <div className={styles.resume}>
+              <div className="flex w-full flex-wrap items-center justify-between gap-4">
                 <p>開いているセッションがあります。全問を申告すると閉じます。</p>
-                <LinkButton to="/session" className={styles.big}>
+                <LinkButton to="/session" size="lg">
                   セッションを再開（{home.data.openSession.graded} / {home.data.openSession.total}）
                 </LinkButton>
               </div>
             ) : (
               <>
-                <div className={styles.pick}>
+                <div className="flex min-w-0 flex-1 flex-col gap-3">
                   <h2>種類</h2>
                   <KindPicker value={kind} counts={home.data.kinds} />
-                  <p className={styles.help}>
+                  <p className="text-[13px] text-ink-muted">
                     初見を多めに出し（3問中{home.data.freshQuota}問）、残りを解禁中の復習から出します。初見の割合は
                     <Link to="/profile">プロフィール</Link>で変えられます。
                   </p>
                 </div>
-                <div className={styles.plan}>
+                <div className="flex min-w-[220px] flex-col items-start gap-2">
                   <h2>今回の{home.data.plan.review + home.data.plan.fresh}問</h2>
-                  <p className={styles.breakdown}>
-                    <span className={styles.num}>{home.data.plan.fresh}</span> 初見 ＋{" "}
-                    <span className={styles.num}>{home.data.plan.review}</span> 復習
+                  <p>
+                    <span className="text-[28px] font-black">{home.data.plan.fresh}</span> 初見 ＋{" "}
+                    <span className="text-[28px] font-black">{home.data.plan.review}</span> 復習
                   </p>
                   {home.data.plan.review === 0 && home.data.nextUnlockAt && (
-                    <p className="muted">次の解禁は {formatJstDate(home.data.nextUnlockAt)}</p>
+                    <p className="text-ink-muted">次の解禁は {formatJstDate(home.data.nextUnlockAt)}</p>
                   )}
                   <Button
-                    className={styles.big}
+                    size="lg"
                     onClick={start}
                     disabled={home.data.plan.review + home.data.plan.fresh === 0 || create.isPending}
                   >
-                    {home.data.plan.review + home.data.plan.fresh === 3
-                      ? "3問を引く"
-                      : `${home.data.plan.review + home.data.plan.fresh}問を引く`}
+                    {home.data.plan.review + home.data.plan.fresh}問を引く
                   </Button>
                   {create.isError && !(create.error instanceof ApiError && create.error.code === "session_open") && (
-                    <p className={styles.error} role="alert">
+                    <p className="text-danger" role="alert">
                       {create.error.message}
                     </p>
                   )}
                 </div>
               </>
             )}
-          </section>
+          </Panel>
 
-          <section className={`panel ${styles.stats}`} aria-label="統計">
+          <Panel aria-label="統計" className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <Stat label="現役" value={home.data.stats.active} />
             <Stat label="復習の解禁中" value={home.data.stats.unlocked} />
             <Stat label="卒業" value={home.data.stats.graduated} />
             <Stat label="初見の候補" value={home.data.stats.freshCandidates} />
-          </section>
+          </Panel>
 
-          <div className={styles.charts}>
-            <DailyBars days={home.data.daily} />
-            <Grass weeks={home.data.grass.weeks} total={home.data.grass.total} />
-          </div>
-        </>
+          <DailyBars days={home.data.daily} />
+          <Grass weeks={home.data.grass.weeks} total={home.data.grass.total} />
+        </div>
       )}
-    </main>
+    </Page>
   );
 }

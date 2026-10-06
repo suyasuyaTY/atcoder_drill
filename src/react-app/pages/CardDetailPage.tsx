@@ -9,9 +9,9 @@ import { ExternalLink } from "../components/ExternalLink";
 import { GradeChip } from "../components/GradeChip";
 import { Notice } from "../components/Notice";
 import { StreakDots } from "../components/StreakDots";
+import { Page, Panel, PanelSkeleton } from "../components/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { NotFoundPage } from "./NotFoundPage";
-import styles from "./CardDetailPage.module.css";
 
 type Data = NonNullable<ReturnType<typeof useCard>["data"]>;
 
@@ -32,16 +32,16 @@ function CardDetail({ cardId }: { cardId: number }) {
   if (card.isError) {
     if (card.error instanceof ApiError && card.error.status === 404) return <NotFoundPage />;
     return (
-      <main className="page page-narrow">
+      <Page width="narrow">
         <Notice role="alert">{card.error.message}</Notice>
-      </main>
+      </Page>
     );
   }
   if (card.isPending) {
     return (
-      <main className="page page-narrow">
-        <div className={`panel ${styles.skeleton}`} aria-busy="true" />
-      </main>
+      <Page width="narrow">
+        <PanelSkeleton className="h-80" />
+      </Page>
     );
   }
   return <CardView data={card.data} />;
@@ -70,35 +70,35 @@ function CardView({ data }: { data: Data }) {
     del.mutate(card.id, { onSuccess: () => navigate(`/table?kind=${card.kind}&page=1`, { replace: true }) });
 
   return (
-    <main className="page page-narrow">
-      <p className={styles.crumb}>
+    <Page width="narrow" className="flex flex-col gap-4">
+      <p className="text-[13px]">
         <Link to={`/table?kind=${card.kind}&page=1`}>問題表</Link>
       </p>
-      <section className={`panel ${styles.head}`} aria-labelledby="card-title">
-        <div className={styles.label}>
+      <Panel aria-labelledby="card-title" className="flex flex-col gap-3">
+        <div className="flex items-center gap-2.5 text-[13px] font-bold text-ink-muted">
           {card.contestId.toUpperCase()} {card.problemIndex}
           <DifficultyDot value={card.difficulty} />
         </div>
-        <h1 id="card-title" className={styles.title}>
+        <h1 id="card-title" className="mb-0 text-[26px] font-black">
           {card.title}
         </h1>
-        <div className={styles.meta}>
+        <div className="flex flex-wrap items-center gap-4">
           <ExternalLink href={problemUrl(card.contestId, card.problemId)}>問題を開く</ExternalLink>
-          <span className="muted">
+          <span className="text-ink-muted">
             {formatJstDate(card.createdAt)} に{card.origin === "fresh" ? "初見で" : "登録画面で"}登録
           </span>
         </div>
-        <div className={styles.status}>
+        <div className="flex flex-wrap items-center gap-4">
           <StreakDots streak={card.streak} size="large" />
           <span>{statusText(card.status, card.nextReviewAt)}</span>
         </div>
-        <p className={styles.source}>difficulty は AtCoder Problems 推定値です。</p>
-      </section>
+        <p className="text-xs text-ink-muted">difficulty は AtCoder Problems 推定値です。</p>
+      </Panel>
 
-      <section className={`panel ${styles.history}`} aria-labelledby="history-heading">
+      <Panel aria-labelledby="history-heading" className="flex flex-col gap-3">
         <h2 id="history-heading">申告の履歴</h2>
-        <div className={styles.scroll}>
-          <table className={styles.table}>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-[13px] [&_td]:border-b [&_td]:border-line-row [&_td]:p-2.5 [&_td]:whitespace-nowrap [&_th]:border-b [&_th]:border-line [&_th]:bg-surface-sub [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:whitespace-nowrap [&_th]:text-ink-muted">
             <thead>
               <tr>
                 <th scope="col">日時</th>
@@ -121,23 +121,23 @@ function CardView({ data }: { data: Data }) {
                     {a.streakBefore} → {a.streakAfter}
                   </td>
                   <td>{a.nextReviewAt ? formatJstDate(a.nextReviewAt) : "卒業"}</td>
-                  <td className={styles.note}>{a.note ?? ""}</td>
+                  <td className="min-w-40 whitespace-normal!">{a.note ?? ""}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
 
-      <section className={`panel ${styles.danger}`} aria-labelledby="delete-heading">
+      <Panel aria-labelledby="delete-heading" className="flex flex-col gap-3">
         <h2 id="delete-heading">カードを削除</h2>
-        <p className="muted">
+        <p className="text-ink-muted">
           カードと申告の履歴をすべて消します。元に戻せません。削除した問題は、初見の対象なら、また初見として出ることがあります。
         </p>
         {card.inSession ? (
-          <p className={styles.blocked}>出題中のため削除できません。セッションで申告を済ませてください。</p>
+          <p className="text-danger">出題中のため削除できません。セッションで申告を済ませてください。</p>
         ) : confirming ? (
-          <div className={styles.confirm}>
+          <div className="flex flex-wrap items-center gap-3">
             <span>本当に削除しますか？</span>
             <Button variant="danger" onClick={remove} disabled={del.isPending}>
               削除する
@@ -154,11 +154,11 @@ function CardView({ data }: { data: Data }) {
           </div>
         )}
         {del.isError && (
-          <p className={styles.error} role="alert">
+          <p className="text-danger" role="alert">
             {del.error.message}
           </p>
         )}
-      </section>
-    </main>
+      </Panel>
+    </Page>
   );
 }
